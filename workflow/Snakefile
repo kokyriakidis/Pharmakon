@@ -1,0 +1,25 @@
+include: "rules/common.smk"
+
+##### Target rules #####
+
+rule reference:
+    input:
+        expand("calls/{sample}/{sample}.vcf.gz", sample=samples.index)
+        #"qc/multiqc.html"
+        #"resources/{genome_build}/{genome_build}.sa".format(genome_build=config["ref"]["build"])
+
+#rule all:
+#    input:
+#        "annotated/all.vcf.gz",
+#        "qc/multiqc.html",
+#        "plots/depths.svg",
+#        "plots/allele-freqs.svg"
+
+
+##### Modules #####
+
+include: "rules/reference.smk"
+include: "rules/mapping.smk"
+include: "rules/calling_deepvariant.smk"
+include: "rules/qc.smk"
+#include: "rules/annotation.smk"

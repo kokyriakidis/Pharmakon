@@ -1,0 +1,32 @@
+samples: config/samples.tsv
+
+ref:
+  # ensembl species name
+  species: homo_sapiens
+  # ensembl release
+  release: 100
+  # genome build
+  build: GRCh38
+
+
+processing:
+  remove-duplicates: true
+  # Point to a bed file with, e.g., captured regions if necessary
+  restrict-regions: ""  # "/path/to/captured_regions.bed"
+
+params:
+  deepvariant:
+    # Select model: "WGS" or "WES"
+    model: "WES"
+  picard:
+    MarkDuplicates: "REMOVE_DUPLICATES=true"
+  stargazer:
+    target_gene: "ALL"
+    control_gene: "vdr"
+  vep:
+    plugins:
+      # Add any plugin from https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html
+      # Plugin args can be passed as well, e.g. "LoFtool,path/to/custom/scores.txt".
+      - LoFtool
+    # extra command line arguments (e.g. --sift, see docs)
+    extra: ""
