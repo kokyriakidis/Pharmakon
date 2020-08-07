@@ -8,13 +8,13 @@ report: "../report/workflow.rst"
 
 container: "continuumio/miniconda3:4.8.2"
 
-###### Config file and sample sheets #####
+###### Config file #####
 configfile: "config/config.yaml"
 #validate(config, schema="../schemas/config.schema.yaml")
 
+##### Sample sheet #####
 samples = pd.read_table(config["samples"]).set_index("sample_name", drop=False)
 #validate(samples, schema="../schemas/samples.schema.yaml")
-
 
 ##### Wildcard constraints #####
 wildcard_constraints:

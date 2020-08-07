@@ -1,14 +1,21 @@
+def get_get_gdf_input(bai=False):
+    # case 1: no duplicate removal
+    f = "{project_dir}/{sample}/mapped/{sample}.sorted.bam"
+    if config["processing"]["remove-duplicates"]:
+        # case 2: remove duplicates
+        f = "{project_dir}/{sample}/dedup/{sample}.bam"
+
 rule get_gdf:
     input:
-        bam_file="dedup/{sample}/{sample}.bam",
+        bam_file=get_get_gdf_input(),
         genome_build=config["ref"]["build"],
         target_gene=config["params"]["stargazer"]["target_gene"],
         control_gene=config["params"]["stargazer"]["control_gene"],
     output:
-        output_file="stargazer/{sample}/gdf/{sample}.gdf"
+        output_file="{project_dir}/{sample}/gdf/{sample}.gdf"
     threads: 2
     log:
-        "logs/stargazer/{sample}/get_gdf.log"
+        "{project_dir}/{sample}/logs/gdf/get_gdf.log"
     script:
         "scripts/bam2gdf.py"
 
@@ -19,14 +26,14 @@ rule stargazer:
         data_type="wgs"
         genome_build="hg38" if config["ref"]["build"] == "GRCh38" else "hg19",
         target_gene=config["params"]["stargazer"]["target_gene"],
-        vcf_file="calls/{sample}/{sample}.vcf.gz",
+        vcf_file="{project_dir}/{sample}/final_vcf/{sample}.vcf.gz",
         control_gene=config["params"]["stargazer"]["control_gene"],
-        gdf_file="stargazer/{sample}/gdf/{sample}.gdf"
-        project_dir="stargazer/{sample}/stargazer"
+        gdf_file="{project_dir}/{sample}/gdf/{sample}.gdf"
+        project_dir="{project_dir}/{sample}/stargazer"
     output:
-        output_file="stargazer/{sample}/stargazer/{sample}_genotype.txt"
+        output_file="{project_dir}/{sample}/stargazer/{sample}_genotype.txt"
     threads: 2
     log:
-        "logs/stargazer/{sample}/stargazer.log"
+        "{project_dir}/{sample}/logs/stargazer/stargazer.log"
     shell: 
         "{input.stargazer_tool} {input.data_type} {input.genome_build} {input.target_gene} {input.vcf_file} {input.project_dir} --cg {input.control_gene} --gdf {input.gdf_file} --plot"

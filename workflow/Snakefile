@@ -4,7 +4,9 @@ include: "rules/common.smk"
 
 rule reference:
     input:
-        expand("calls/{sample}/{sample}.vcf.gz", sample=samples.index)
+        #expand("{project_dir}/{sample}/dedup/{sample}.bam",  project_dir=config["project_dir"], sample=samples.index)
+        expand("reference/{genome_build}/{genome_build}_variation_noiupac.vcf.gz.tbi", genome_build=config["ref"]["build"])
+        #expand("calls/{sample}/{sample}.vcf.gz", sample=samples.index)
         #"qc/multiqc.html"
         #"resources/{genome_build}/{genome_build}.sa".format(genome_build=config["ref"]["build"])
 

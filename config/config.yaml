@@ -1,3 +1,8 @@
+##### Project directory path #####
+##### e.g. /path/to/output/dir/directory #####
+project_dir: /Users/kokyriakidis/Desktop/test_folder
+
+##### 
 samples: config/samples.tsv
 
 ref:
@@ -13,11 +18,14 @@ processing:
   remove-duplicates: true
   # Point to a bed file with, e.g., captured regions if necessary
   restrict-regions: ""  # "/path/to/captured_regions.bed"
+  region-padding: ""
 
 params:
   deepvariant:
     # Select model: "WGS" or "WES"
     model: "WES"
+  gatk:
+    BaseRecalibrator: ""
   picard:
     MarkDuplicates: "REMOVE_DUPLICATES=true"
   stargazer:
