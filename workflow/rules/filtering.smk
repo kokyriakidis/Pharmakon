@@ -1,4 +1,4 @@
-if _platform == "darwin":
+if _platform == "darwin" or config["variant_tool"] == "gatk":
 
     def get_vartype_arg(wildcards):
         return "--select-type-to-include {}".format(
@@ -55,6 +55,8 @@ if _platform == "darwin":
     rule merge_calls:
         input:
             vcfs=expand("{project_dir}/{sample}/filtered/all.{vartype}.{filtertype}.vcf.gz",
+                    sample=samples.index,
+                    project_dir=config["project_dir"],
                     vartype=["snvs", "indels"],
                     filtertype="recalibrated"
                                 if config["filtering"]["vqsr"]

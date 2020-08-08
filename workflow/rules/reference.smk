@@ -42,7 +42,7 @@ rule genome_dict:
         "samtools dict {input} > {output} 2> {log} "
 
 
-if _platform == "darwin":
+if _platform == "darwin" or config["variant_tool"] == "gatk":
 
     rule get_known_variation:
         input:

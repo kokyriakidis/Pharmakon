@@ -94,7 +94,7 @@ rule mark_duplicates:
     input:
         "{project_dir}/{sample}/mapped/{sample}.sorted.bam"
     output:
-        bam=temp("{project_dir}/{sample}/dedup/{sample}.bam"),
+        bam="{project_dir}/{sample}/dedup/{sample}.bam",
         metrics="{project_dir}/{sample}/qc/dedup/{sample}.metrics.txt"
     log:
         "{project_dir}/{sample}/logs/picard/dedup/{sample}.log"
@@ -104,7 +104,7 @@ rule mark_duplicates:
         "0.64.0/bio/picard/markduplicates"
 
 
-if _platform == "darwin":
+if _platform == "darwin" or config["variant_tool"] == "gatk":
     rule recalibrate_base_qualities:
         input:
             bam=get_recal_input(),
@@ -114,13 +114,30 @@ if _platform == "darwin":
             known=rules.remove_iupac_codes.output[0],
             tbi=rules.tabix_known_variants.output[0]
         output:
-            bam=protected("{project_dir}/{sample}/recal/{sample}.bam")
+            recal_table="{project_dir}/{sample}/recal/{sample}.grp"
         params:
             extra=get_regions_param() + config["params"]["gatk"]["BaseRecalibrator"]
         log:
-            "{project_dir}/{sample}/logs/gatk/bqsr/{sample}.log"
+            "{project_dir}/{sample}/logs/gatk/recal/{sample}.log"
         wrapper:
             "0.64.0/bio/gatk/baserecalibrator"
+
+    rule gatk_applybqsr:
+        input:
+            bam=get_recal_input(),
+            bai=get_recal_input(bai=True),
+            ref=rules.get_genome.output[0],
+            dict=rules.genome_dict.output[0],
+            recal_table="{project_dir}/{sample}/recal/{sample}.grp"
+        output:
+            bam="{project_dir}/{sample}/applybqsr/{sample}.bam"
+        log:
+            "{project_dir}/{sample}/logs/gatk/applybqsr/{sample}.log"
+        params:
+            extra="",  # optional
+            java_opts="", # optional
+        wrapper:
+            "0.64.0/bio/gatk/applybqsr"
 
 
 rule samtools_index:

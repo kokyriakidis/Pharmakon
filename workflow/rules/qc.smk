@@ -3,38 +3,65 @@ def get_fastq(wildcards):
     fastqs = samples.loc[wildcards.sample, ["fq1", "fq2"]].dropna()
     return {"r1": fastqs.fq1, "r2": fastqs.fq2}
 
+def get_deepvariant_bams(bai=False):
+    # case 1: no duplicate removal
+    f = "{project_dir}/{sample}/mapped/{sample}.sorted.bam"
+    if config["processing"]["remove-duplicates"]:
+        # case 2: remove duplicates
+        f = "{project_dir}/{sample}/dedup/{sample}.bam"
+
+def get_gatk_bams(wildcards):
+    """Get all aligned reads of given sample."""
+    return expand("{project_dir}/{sample}/applybqsr/{sample}.bam",
+                  sample=wildcards.sample,
+                  project_dir=config["project_dir"])
+
 samples = pd.read_table(config["samples"]).set_index("sample_name", drop=False)
 
 rule fastqc:
     input:
         unpack(get_fastq)
     output:
-        html="qc/fastqc/{sample}/{sample}.html",
-        zip="qc/fastqc/{sample}/{sample}.zip"
+        html="{project_dir}/{sample}/qc/fastqc/{sample}.html",
+        zip="{project_dir}/{sample}/qc/fastqc/{sample}.zip"
     wrapper:
         "0.64.0/bio/fastqc"
 
+if _platform == "darwin" or config["variant_tool"] == "gatk":
 
-rule samtools_stats:
-    input:
-        "dedup/{sample}/{sample}.bam"
-    output:
-        "qc/samtools-stats/{sample}/{sample}.txt"
-    log:
-        "logs/samtools-stats/{sample}/{sample}.log"
-    wrapper:
-        "0.64.0/bio/samtools/stats"
+    rule samtools_stats:
+        input:
+            get_gatk_bams
+        output:
+            "{project_dir}/{sample}/qc/samtools-stats/{sample}.txt"
+        log:
+            "{project_dir}/{sample}/logs/samtools-stats/{sample}.log"
+        wrapper:
+            "0.64.0/bio/samtools/stats"
+
+else:
+
+    rule samtools_stats:
+        input:
+            get_deepvariant_bams
+        output:
+            "{project_dir}/{sample}/qc/samtools-stats/{sample}.txt"
+        log:
+            "{project_dir}/{sample}/logs/samtools-stats/{sample}.log"
+        wrapper:
+            "0.64.0/bio/samtools/stats"
 
 
 rule multiqc:
     input:
-        expand(["qc/samtools-stats/{sample}/{sample}.txt",
-                "qc/fastqc/{sample}/{sample}.zip",
-                "qc/dedup/{sample}/{sample}.metrics.txt"],
-                sample=samples.index)
+        expand(["{project_dir}/{sample}/qc/samtools-stats/{sample}.txt",
+                "{project_dir}/{sample}/qc/fastqc/{sample}.zip",
+                "{project_dir}/{sample}/qc/dedup/{sample}.metrics.txt"],
+                sample=samples.index,
+                project_dir=config["project_dir"])
     output:
-        "qc/multiqc/multiqc.html"
+        expand("{project_dir}/{sample}/qc/multiqc/multiqc.html", project_dir=config["project_dir"], sample=samples.index)
     log:
-        "logs/multiqc/multiqc.log"
+        expand("{project_dir}/{sample}/logs/multiqc/multiqc.log", project_dir=config["project_dir"], sample=samples.index)
     wrapper:
         "0.64.0/bio/multiqc"

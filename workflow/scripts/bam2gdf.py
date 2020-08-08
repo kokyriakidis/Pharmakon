@@ -11,7 +11,7 @@ def get_gene_table() -> Dict[str, Dict[str, str]]:
         dict[str, dict[str, str]]: Gene table object.
     """
 
-    return read_gene_table("/resources/stargazer/gene_table.txt")
+    return read_gene_table("workflow/resources/stargazer/gene_table.txt")
 
 
 def read_gene_table(

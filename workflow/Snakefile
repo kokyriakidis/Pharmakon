@@ -5,9 +5,13 @@ include: "rules/common.smk"
 rule reference:
     input:
         #expand("{project_dir}/{sample}/dedup/{sample}.bam",  project_dir=config["project_dir"], sample=samples.index)
-        expand("reference/{genome_build}/{genome_build}_variation_noiupac.vcf.gz.tbi", genome_build=config["ref"]["build"])
-        #expand("calls/{sample}/{sample}.vcf.gz", sample=samples.index)
-        #"qc/multiqc.html"
+        #expand("reference/{genome_build}/{genome_build}_variation_noiupac.vcf.gz.tbi", genome_build=config["ref"]["build"])
+        #expand("{project_dir}/{sample}/intervals/{contig}.regions.bed", sample=samples.index, project_dir=config["project_dir"])
+        #expand("{project_dir}/{sample}/final_vcf/{sample}.vcf.gz", project_dir=config["project_dir"], sample=samples.index)
+        #expand("{project_dir}/{sample}/called/{sample}.{contig}.g.vcf.gz", project_dir=config["project_dir"], sample=samples.index, contig=get_contigs())
+        #expand("reference/{genome_build}/{genome_build}.fasta.fai", genome_build=config["ref"]["build"])
+        #expand("{project_dir}/{sample}/final_vcf/{sample}.vcf.gz", project_dir=config["project_dir"], sample=samples.index),
+        expand("{project_dir}/{sample}/qc/multiqc/multiqc.html", project_dir=config["project_dir"], sample=samples.index)        
         #"resources/{genome_build}/{genome_build}.sa".format(genome_build=config["ref"]["build"])
 
 #rule all:
@@ -22,6 +26,7 @@ rule reference:
 
 include: "rules/reference.smk"
 include: "rules/mapping.smk"
-include: "rules/calling_deepvariant.smk"
+include: "rules/calling.smk"
+include: "rules/filtering.smk"
 include: "rules/qc.smk"
 #include: "rules/annotation.smk"

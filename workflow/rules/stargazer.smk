@@ -1,13 +1,17 @@
-def get_get_gdf_input(bai=False):
-    # case 1: no duplicate removal
-    f = "{project_dir}/{sample}/mapped/{sample}.sorted.bam"
-    if config["processing"]["remove-duplicates"]:
-        # case 2: remove duplicates
-        f = "{project_dir}/{sample}/dedup/{sample}.bam"
+def get_gdf_input(bai=False):
+    if _platform == "darwin" or config["variant_tool"] == "gatk":
+        f = "{project_dir}/{sample}/applybqsr/{sample}.bam"
+    else:
+        # case 1: no duplicate removal
+        f = "{project_dir}/{sample}/mapped/{sample}.sorted.bam"
+        if config["processing"]["remove-duplicates"]:
+            # case 2: remove duplicates
+            f = "{project_dir}/{sample}/dedup/{sample}.bam"
+    return f
 
-rule get_gdf:
+rule gdf:
     input:
-        bam_file=get_get_gdf_input(),
+        bam_file=get_gdf_input(),
         genome_build=config["ref"]["build"],
         target_gene=config["params"]["stargazer"]["target_gene"],
         control_gene=config["params"]["stargazer"]["control_gene"],
@@ -15,7 +19,7 @@ rule get_gdf:
         output_file="{project_dir}/{sample}/gdf/{sample}.gdf"
     threads: 2
     log:
-        "{project_dir}/{sample}/logs/gdf/get_gdf.log"
+        "{project_dir}/{sample}/logs/gdf/gdf.log"
     script:
         "scripts/bam2gdf.py"
 
