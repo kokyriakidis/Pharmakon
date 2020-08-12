@@ -16,7 +16,7 @@ rule get_genome:
         "0.64.0/bio/reference/ensembl-sequence"
 
 
-checkpoint genome_faidx:
+rule genome_faidx:
     input:
         "reference/{genome_build}/{genome_build}.fasta".format(genome_build=genome_build)
     output:

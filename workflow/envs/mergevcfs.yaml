@@ -1,0 +1,8 @@
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python =3.6
+  - bioconda::pysam =0.16.0.1
+  - pandas =0.23
+  - picard ==2.22.1

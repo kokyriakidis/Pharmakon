@@ -24,17 +24,13 @@ def get_recal_input(bai=False):
         # case 2: remove duplicates
         f = "{project_dir}/{sample}/dedup/{sample}.bam"
     if bai:
-        if config["processing"].get("restrict-regions"):
-            # case 3: need an index because random access is required
-            f += ".bai"
-            return f
-        else:
-            # case 4: no index needed
-            return []
+        # case 3: need an index because random access is required
+        f += ".bai"
+        return f
     else:
         return f
 
-def get_regions_param(regions=config["processing"].get("restrict-regions"), default=""):
+def get_gatk_regions_param(regions=config["processing"].get("restrict-regions"), default=""):
     if regions:
         params = "--intervals '{}' ".format(regions)
         padding = config["processing"].get("region-padding")
@@ -43,21 +39,19 @@ def get_regions_param(regions=config["processing"].get("restrict-regions"), defa
         return params
     return default
 
-
-def get_regions_param(regions=config["processing"].get("restrict-regions"), default=""):
-    if regions:
-        params = "--regions '{}' ".format(regions)
-        return params
-    return default
+def get_recal_params(wildcards, input):
+    return (get_gatk_regions_param(regions=input.regions, default="") +
+            config["params"]["gatk"]["BaseRecalibrator"])
 
 ##### END OF GATK SPECIFIC FUNCTIONS #####
 
 
 if _platform == "darwin":
+    
     rule map_reads:
         input:
             reads=get_map_reads_input,
-            idx=rules.get_genome.output
+            idx=rules.get_genome.output["fasta"]
         output:
             "{project_dir}/{sample}/mapped/{sample}.sorted.bam"
         log:
@@ -72,10 +66,11 @@ if _platform == "darwin":
             "0.64.0/bio/bwa/mem"
 
 elif _platform == "linux" or _platform == "linux2":
+    
     rule map_reads:
         input:
             reads=get_map_reads_input,
-            idx=rules.get_genome.output
+            idx=rules.get_genome.output["fasta"]
         output:
             "{project_dir}/{sample}/mapped/{sample}.sorted.bam"
         log:
@@ -104,19 +99,39 @@ rule mark_duplicates:
         "0.64.0/bio/picard/markduplicates"
 
 
+rule get_all_intervals:
+    output:
+        expand("{project_dir}/intervals/SUMMARY/SELECTED_GENES_UNSORTED.bed", project_dir=config["project_dir"], sample=samples.index)
+    conda:
+        "../envs/intervals.yaml"
+    script:
+        "../scripts/all_intervals.py"
+
+rule sort_all_intervals:
+    input:
+        expand("{project_dir}/intervals/SUMMARY/SELECTED_GENES_UNSORTED.bed", project_dir=config["project_dir"], sample=samples.index)
+    output:
+        expand("{project_dir}/intervals/SUMMARY/SELECTED_GENES.bed", project_dir=config["project_dir"], sample=samples.index)
+    shell:
+        "sort -V -k 1,1 -k 2,2n -o {output} {input} \n"
+        "rm {input}"
+
+
 if _platform == "darwin" or config["variant_tool"] == "gatk":
+    
     rule recalibrate_base_qualities:
         input:
             bam=get_recal_input(),
             bai=get_recal_input(bai=True),
-            ref=rules.get_genome.output[0],
-            idx=rules.genome_dict.output[0],
-            known=rules.remove_iupac_codes.output[0],
-            tbi=rules.tabix_known_variants.output[0]
+            ref=rules.get_genome.output["fasta"],
+            dict=rules.genome_dict.output["fasta_dict"],
+            known=rules.get_dbsnp.output["dbsnp"],
+            tbi=rules.get_dbsnp.output["dbsnp_tbi"],
+            regions="{project_dir}/intervals/SUMMARY/SELECTED_GENES.bed"
         output:
             recal_table="{project_dir}/{sample}/recal/{sample}.grp"
         params:
-            extra=get_regions_param() + config["params"]["gatk"]["BaseRecalibrator"]
+            extra=get_recal_params
         log:
             "{project_dir}/{sample}/logs/gatk/recal/{sample}.log"
         wrapper:
@@ -126,8 +141,8 @@ if _platform == "darwin" or config["variant_tool"] == "gatk":
         input:
             bam=get_recal_input(),
             bai=get_recal_input(bai=True),
-            ref=rules.get_genome.output[0],
-            dict=rules.genome_dict.output[0],
+            ref=rules.get_genome.output["fasta",
+            dict=rules.genome_dict.output["fasta_dict"],
             recal_table="{project_dir}/{sample}/recal/{sample}.grp"
         output:
             bam="{project_dir}/{sample}/applybqsr/{sample}.bam"

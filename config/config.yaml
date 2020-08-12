@@ -11,16 +11,17 @@ ref:
   # ensembl release
   release: 100
   # genome build
-  build: GRCh38
+  build: hg38
+  output_dir: /Users/kokyriakidis/Desktop/reference
 
 ##### "gatk" or "deepvariant"
-variant_tool: ""
+variant_tool: "gatk"
 
 processing:
   remove-duplicates: true
   # Point to a bed file with, e.g., captured regions if necessary
-  restrict-regions: ""  # "/path/to/captured_regions.bed"
-  region-padding: ""
+  #restrict-regions: ""  # "/path/to/captured_regions.bed"
+  #region-padding: ""
 
 filtering:
   # Set to true in order to apply machine learning based recalibration of
@@ -38,6 +39,7 @@ params:
   deepvariant:
     # Select model: "WGS" or "WES"
     model: "WES"
+    extra: ""
   gatk:
     HaplotypeCaller: ""
     BaseRecalibrator: ""
@@ -46,7 +48,7 @@ params:
   picard:
     MarkDuplicates: "REMOVE_DUPLICATES=true"
   stargazer:
-    target_gene: "ALL"
+    target_genes: "ALL"
     control_gene: "vdr"
   vep:
     plugins:

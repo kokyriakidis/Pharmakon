@@ -16,8 +16,6 @@ def get_gatk_bams(wildcards):
                   sample=wildcards.sample,
                   project_dir=config["project_dir"])
 
-samples = pd.read_table(config["samples"]).set_index("sample_name", drop=False)
-
 rule fastqc:
     input:
         unpack(get_fastq)
