@@ -161,7 +161,14 @@ rule reference:
         #expand("{project_dir}/{sample}/genes/{gene}/gdf/{gene}.gdf", project_dir=config["project_dir"], sample=samples.index, gene=selected_genes)
         #"{output_dir}/{genome_build}/seq/{genome_build}.fa".format(output_dir=config["ref"]["output_dir"], genome_build=config["ref"]["build"])
         #"{output_dir}/{genome_build}/variation/Mills_and_1000G_gold_standard.indels.vcf.gz".format(output_dir=config["ref"]["output_dir"], genome_build=config["ref"]["build"])
-        "{output_dir}/{genome_build}/bwa/{genome_build}.fa.pac".format(output_dir=config["ref"]["output_dir"], genome_build=config["ref"]["build"])
+        #"{output_dir}/{genome_build}/variation/dbsnp-153.vcf.gz".format(output_dir=config["ref"]["output_dir"], genome_build=config["ref"]["build"])
+        expand("{project_dir}/{sample}/dedup/{sample}.bam", project_dir=config["project_dir"], sample=samples.index),
+        expand("{project_dir}/{sample}/applybqsr/{sample}.bam", project_dir=config["project_dir"], sample=samples.index)
+
+
+
+
+
 #rule all:
 #    input:
 #        expand("{project_dir}/{sample}/final_vcf/{sample}.vcf.gz", project_dir=config["project_dir"], sample=samples.index),
@@ -172,8 +179,8 @@ rule reference:
 
 ##### Modules #####
 
-include: "rules/reference2.smk"
-#include: "rules/mapping.smk"
+include: "rules/reference.smk"
+include: "rules/mapping.smk"
 #include: "rules/calling.smk"
 #include: "rules/filtering.smk"
 #include: "rules/stargazer.smk"

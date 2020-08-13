@@ -14,6 +14,16 @@ def get_read_group(wildcards):
     """Denote sample name and platform in read group."""
     return r"-R '@RG\tID:{sample}\tSM:{sample}\tPL:ILLUMINA'".format(sample=wildcards.sample)
 
+def get_intervals_bams(wildcards):
+    """
+    Get the appropriate aligned bams of a given sample.
+    """
+    # Case 1: no duplicate removal
+    f = "{project_dir}/{sample}/mapped/{sample}.sorted.bam"
+    if config["processing"]["remove-duplicates"]:
+        # case 2: remove duplicates
+        f = "{project_dir}/{sample}/dedup/{sample}.bam"
+    return f
 
 ##### GATK SPECIFIC FUNCTIONS #####
 
@@ -50,14 +60,13 @@ if _platform == "darwin":
     
     rule map_reads:
         input:
-            reads=get_map_reads_input,
-            idx=rules.get_genome.output["fasta"]
+            reads=get_map_reads_input
         output:
             "{project_dir}/{sample}/mapped/{sample}.sorted.bam"
         log:
             "{project_dir}/{sample}/logs/bwa_mem/{sample}.log"
         params:
-            index=lambda w, input: input.idx[0],
+            index="{output_dir}/{genome_build}/bwa/{genome_build}.fa".format(output_dir=config["ref"]["output_dir"], genome_build=config["ref"]["build"]),
             extra=get_read_group,
             sort="samtools",
             sort_order="coordinate"
@@ -69,14 +78,13 @@ elif _platform == "linux" or _platform == "linux2":
     
     rule map_reads:
         input:
-            reads=get_map_reads_input,
-            idx=rules.get_genome.output["fasta"]
+            reads=get_map_reads_input
         output:
             "{project_dir}/{sample}/mapped/{sample}.sorted.bam"
         log:
             "{project_dir}/{sample}/logs/bwa_mem2/{sample}.log"
         params:
-            index=lambda w, input: input.idx[0],
+            index="{output_dir}/{genome_build}/bwa/{genome_build}.fa".format(output_dir=config["ref"]["output_dir"], genome_build=config["ref"]["build"]),
             extra=get_read_group,
             sort="samtools",
             sort_order="coordinate"
@@ -99,15 +107,17 @@ rule mark_duplicates:
         "0.64.0/bio/picard/markduplicates"
 
 
-rule get_all_intervals:
+rule get_selected_intervals:
+    input:
+        bam = get_intervals_bams
     output:
         expand("{project_dir}/intervals/SUMMARY/SELECTED_GENES_UNSORTED.bed", project_dir=config["project_dir"], sample=samples.index)
     conda:
         "../envs/intervals.yaml"
     script:
-        "../scripts/all_intervals.py"
+        "../scripts/selected_intervals.py"
 
-rule sort_all_intervals:
+rule sort_selected_intervals:
     input:
         expand("{project_dir}/intervals/SUMMARY/SELECTED_GENES_UNSORTED.bed", project_dir=config["project_dir"], sample=samples.index)
     output:
@@ -124,7 +134,7 @@ if _platform == "darwin" or config["variant_tool"] == "gatk":
             bam=get_recal_input(),
             bai=get_recal_input(bai=True),
             ref=rules.get_genome.output["fasta"],
-            dict=rules.genome_dict.output["fasta_dict"],
+            dict=rules.get_genome.output["fasta_dict"],
             known=rules.get_dbsnp.output["dbsnp"],
             tbi=rules.get_dbsnp.output["dbsnp_tbi"],
             regions="{project_dir}/intervals/SUMMARY/SELECTED_GENES.bed"
@@ -141,8 +151,8 @@ if _platform == "darwin" or config["variant_tool"] == "gatk":
         input:
             bam=get_recal_input(),
             bai=get_recal_input(bai=True),
-            ref=rules.get_genome.output["fasta",
-            dict=rules.genome_dict.output["fasta_dict"],
+            ref=rules.get_genome.output["fasta"],
+            dict=rules.get_genome.output["fasta_dict"],
             recal_table="{project_dir}/{sample}/recal/{sample}.grp"
         output:
             bam="{project_dir}/{sample}/applybqsr/{sample}.bam"
