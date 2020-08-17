@@ -14,17 +14,6 @@ def get_read_group(wildcards):
     """Denote sample name and platform in read group."""
     return r"-R '@RG\tID:{sample}\tSM:{sample}\tPL:ILLUMINA'".format(sample=wildcards.sample)
 
-def get_intervals_bams(wildcards):
-    """
-    Get the appropriate aligned bams of a given sample.
-    """
-    # Case 1: no duplicate removal
-    f = "{project_dir}/{sample}/mapped/{sample}.sorted.bam"
-    if config["processing"]["remove-duplicates"]:
-        # case 2: remove duplicates
-        f = "{project_dir}/{sample}/dedup/{sample}.bam"
-    return f
-
 ##### GATK SPECIFIC FUNCTIONS #####
 
 def get_recal_input(bai=False):
@@ -102,26 +91,27 @@ rule mark_duplicates:
     log:
         "{project_dir}/{sample}/logs/picard/dedup/{sample}.log"
     params:
-        config["params"]["picard"]["MarkDuplicates"] + "USE_JDK_DEFLATER=true USE_JDK_INFLATER=true"
+        config["params"]["picard"]["MarkDuplicates"]
     wrapper:
         "0.64.0/bio/picard/markduplicates"
 
 
 rule get_selected_intervals:
     input:
-        bam = get_intervals_bams
+        expand("{project_dir}/{sample}/dedup/{sample}.bam", project_dir=config["project_dir"], sample=samples.index) if config["processing"]["remove-duplicates"] == True else expand("{project_dir}/{sample}/mapped/{sample}.sorted.bam", project_dir=config["project_dir"], sample=samples.index)
     output:
-        expand("{project_dir}/intervals/SUMMARY/SELECTED_GENES_UNSORTED.bed", project_dir=config["project_dir"], sample=samples.index)
+        expand("{project_dir}/intervals/SUMMARY/SELECTED_GENES_UNSORTED.bed", project_dir=config["project_dir"], sample=samples.index),
+        expand("{project_dir}/intervals/{gene}.bed", project_dir=config["project_dir"], gene=selected_genes)
     conda:
         "../envs/intervals.yaml"
     script:
-        "../scripts/selected_intervals.py"
+        "../scripts/intervals.py"
 
 rule sort_selected_intervals:
     input:
-        expand("{project_dir}/intervals/SUMMARY/SELECTED_GENES_UNSORTED.bed", project_dir=config["project_dir"], sample=samples.index)
+        "{project_dir}/intervals/SUMMARY/SELECTED_GENES_UNSORTED.bed"
     output:
-        expand("{project_dir}/intervals/SUMMARY/SELECTED_GENES.bed", project_dir=config["project_dir"], sample=samples.index)
+        "{project_dir}/intervals/SUMMARY/SELECTED_GENES.bed"
     shell:
         "sort -V -k 1,1 -k 2,2n -o {output} {input} \n"
         "rm {input}"
@@ -134,7 +124,7 @@ if _platform == "darwin" or config["variant_tool"] == "gatk":
             bam=get_recal_input(),
             bai=get_recal_input(bai=True),
             ref=rules.get_genome.output["fasta"],
-            dict=rules.get_genome.output["fasta_dict"],
+            fasta_dict=rules.get_genome.output["fasta_dict"],
             known=rules.get_dbsnp.output["dbsnp"],
             tbi=rules.get_dbsnp.output["dbsnp_tbi"],
             regions="{project_dir}/intervals/SUMMARY/SELECTED_GENES.bed"
@@ -152,7 +142,7 @@ if _platform == "darwin" or config["variant_tool"] == "gatk":
             bam=get_recal_input(),
             bai=get_recal_input(bai=True),
             ref=rules.get_genome.output["fasta"],
-            dict=rules.get_genome.output["fasta_dict"],
+            fasta_dict=rules.get_genome.output["fasta_dict"],
             recal_table="{project_dir}/{sample}/recal/{sample}.grp"
         output:
             bam="{project_dir}/{sample}/applybqsr/{sample}.bam"

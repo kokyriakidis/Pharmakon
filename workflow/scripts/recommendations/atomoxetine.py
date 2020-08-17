@@ -1,0 +1,17 @@
+def _recommendation(pt: str) -> str:
+    recommendation = ""
+    s1 = "cyp2d6"
+    if s1 in pt:
+        if pt[s1] == "ultrarapid_metabolizer":
+            recommendation = "This patient is predicted to be a CYP2D6 ultrarapid metabolizer and it is unlikely this patient would achieve adequate serum concentrations for the intended effect at standard dosing. Initiate with a dose of 40 mg/day and increase to 80 mg/day after 3 days. If no clinical response and in the absence of adverse events after 2 weeks, consider increasing dose to 100 mg/day. If no clinical response observed after 2 weeks, consider obtaining a peak plasma concentration (1 to 2 hours after dose administered). If <200 ng/ml, consider a proportional increase in dose to approach 400 ng/ml. Dosages greater than 100mg/day may be needed to achieve target concentrations. Please consult a clinical pharmacist for more information."
+        if pt[s1] == "normal_metabolizer":
+            recommendation = "Although this patient is predicted to be a CYP2D6 normal metabolizer, this patient may not achieve adequate serum concentrations for the intended effect at standard dosing. Initiate with a dose of 40 mg/day and increase to 80 mg/day after 3 days. If no clinical response and in the absence of adverse events after 2 weeks, consider increasing dose to 100 mg/day. If no clinical response observed after 2 weeks, consider obtaining a peak plasma concentration (1 to 2 hours after dose administered). If <200 ng/ml, consider a proportional increase in dose to approach 400 ng/ml. Dosages greater than 100mg/day may be needed to achieve target concentrations. Please consult a clinical pharmacist for more information."
+        elif pt[s1] == "intermediate_metabolizer":
+            recommendation = "This patient is predicted to be a CYP2D6 intermediate metabolizer and may be at an increased risk of a atomoxetine-related adverse events. Initiate with a dose of 40 mg/day and if no clinical response and in the absence of adverse events after 2 weeks increase dose to 80 mg/day. If response is inadequate after 2 weeks consider obtaining a plasma concentration 2-4 h after dosing. If concentration is <200 ng/ml, consider a proportional dose increase to achieve a concentration to approach 400 ng/ml. If unacceptable side effects are present at any time, consider a reduction in dose. Please consult a clinical pharmacist for more information."
+        elif pt[s1] == "poor_metabolizer":
+            recommendation = "This patient is predicted to be a CYP2D6 poor metabolizer and may be at an increased risk of a atomoxetine-related adverse events. Initiate with a dose of 40 mg/day and if no clinical response and in the absence of adverse events after 2 weeks increase dose to 80 mg/day. If response is inadequate after 2 weeks consider obtaining a plasma concentration 2-4 h after dosing. If concentration is <200 ng/ml, consider a proportional dose increase to achieve a concentration to approach 400 ng/ml. If unacceptable side effects are present at any time, consider a reduction in dose. Please consult a clinical pharmacist for more information."
+        else:
+            recommendation = "No recommendation"
+    elif s1 not in pt: 
+        recommendation = "No recommendation"
+    return recommendation

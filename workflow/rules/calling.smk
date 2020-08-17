@@ -1,6 +1,6 @@
 ##### GATK SPECIFIC FUNCTIONS #####
 
-def get_gatk_regions_param(regions=config["processing"].get("restrict-regions"), default=""):
+def get_gatk_regions_param(regions="{project_dir}/intervals/{gene}.bed", default=""):
     if regions:
         params = "--intervals '{}' ".format(regions)
         padding = config["processing"].get("region-padding")
@@ -18,7 +18,7 @@ def get_call_variants_params(wildcards, input):
 
 ##### DEEPVARIANT SPECIFIC FUNCTIONS #####
 
-def get_deepvariant_regions_param(regions=config["processing"].get("restrict-regions"), default=""):
+def get_deepvariant_regions_param(regions="{project_dir}/intervals/{gene}.bed", default=""):
     if regions:
         params = "--regions '{}' ".format(regions)
         return params
@@ -50,62 +50,16 @@ def get_sample_bams(wildcards):
 ##### END OF COMMON FUNCTIONS #####
 
 
-def read_selected_genes_table(fn: str) -> List[str]:
-    """
-    Read selected genes file.
-
-    Returns:
-        list[str]: A list of selected gene names.
-
-    Args:
-        fn (str): Selected genes file.
-    """
-    selected_genes = []
-    with open(fn) as f:
-        for gene in f: 
-            gene = gene.strip()
-            selected_genes.append(gene)
-
-    return selected_genes
-
-
-project_dir=config["project_dir"]
-
-samples = pd.read_table(config["samples"]).set_index("sample_name", drop=False)
-selected_samples = []
-for sample in samples["sample_name"]:
-    sample = sample.strip()
-    selected_samples.append(sample)
-
-
-#for sample in samples["sample_name"]:
-selected_genes_table = f"{project_dir}/intervals/SUMMARY/SELECTED_GENES.txt"
-selected_genes = read_selected_genes_table(selected_genes_table)
-
-
-
 if _platform == "darwin" or config["variant_tool"] == "gatk":
-
-    if "restrict-regions" in config["processing"]:
-        rule compose_regions:
-            input:
-                config["processing"]["restrict-regions"]
-            output:
-                "{project_dir}/{sample}/intervals/{contig}.regions.bed"
-            conda:
-                "../envs/bedops.yaml"
-            shell:
-                "bedextract {wildcards.contig} {input} > {output}"
-
 
     rule call_variants:
         input:
             bam=get_sample_bams,
-            ref=rules.get_genome.output[0],
-            idx=rules.genome_dict.output[0],
-            known=rules.remove_iupac_codes.output[0],
-            tbi=rules.tabix_known_variants.output[0],
-            regions=rules.compose_regions.output[0] if config["processing"].get("restrict-regions") else "{project_dir}/intervals/{gene}.bed"
+            ref=rules.get_genome.output["fasta"],
+            idx=rules.get_genome.output["fasta_dict"],
+            known=rules.get_dbsnp.output["dbsnp"],
+            tbi=rules.get_dbsnp.output["dbsnp_tbi"],
+            regions="{project_dir}/intervals/{gene}.bed"
         output:
             gvcf="{project_dir}/{sample}/genes/{gene}/gvcf/{gene}.g.vcf.gz"
         log:
@@ -118,7 +72,7 @@ if _platform == "darwin" or config["variant_tool"] == "gatk":
 
     rule genotype_variants:
         input:
-            ref=rules.get_genome.output[0],
+            ref=rules.get_genome.output["fasta"],
             gvcf="{project_dir}/{sample}/genes/{gene}/gvcf/{gene}.g.vcf.gz"
         output:
             vcf="{project_dir}/{sample}/genes/{gene}/vcf/{gene}.vcf.gz"
@@ -135,7 +89,8 @@ elif (_platform == "linux" or _platform == "linux2") and config["variant_tool"] 
     rule deepvariant:
         input:
             bam=get_sample_bams,
-            ref=rules.get_genome.output[0]
+            ref=rules.get_genome.output["fasta"],
+            regions="{project_dir}/intervals/{gene}.bed"
         output:
             vcf="{project_dir}/{sample}/genes/{gene}/final_vcf/{gene}.vcf.gz"
         params:

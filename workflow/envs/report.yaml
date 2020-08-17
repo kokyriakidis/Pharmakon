@@ -4,6 +4,8 @@ channels:
 dependencies:
   - python =3.6
   - pandas =0.23
+  - conda-forge::bootstrap
+  - conda-forge::xhtml2pdf
   - pip
   - pip:
     - pypgx ==0.1.28

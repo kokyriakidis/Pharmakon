@@ -9,6 +9,7 @@ def get_deepvariant_bams(bai=False):
     if config["processing"]["remove-duplicates"]:
         # case 2: remove duplicates
         f = "{project_dir}/{sample}/dedup/{sample}.bam"
+    return f
 
 def get_gatk_bams(wildcards):
     """Get all aligned reads of given sample."""
@@ -54,7 +55,8 @@ rule multiqc:
     input:
         expand(["{project_dir}/{sample}/qc/samtools-stats/{sample}.txt",
                 "{project_dir}/{sample}/qc/fastqc/{sample}.zip",
-                "{project_dir}/{sample}/qc/dedup/{sample}.metrics.txt"],
+                "{project_dir}/{sample}/qc/dedup/{sample}.metrics.txt",
+                "{project_dir}/{sample}/recal/{sample}.grp"],
                 sample=samples.index,
                 project_dir=config["project_dir"])
     output:

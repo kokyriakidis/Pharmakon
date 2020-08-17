@@ -3,3 +3,4 @@
 reference/*
 data/*
 logs/*
+workflow/scripts/recommendations/__pycache__

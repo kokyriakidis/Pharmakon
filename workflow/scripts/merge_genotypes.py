@@ -1,16 +1,13 @@
-import os
-import logging
-import random
-import string
-import configparser
-from typing import Dict, List, Optional
-from tempfile import TemporaryDirectory
-import pysam
-from functools import wraps
+##### IMPORT REQUIRED LIBRARIES #####
 
-def read_gene_table(
-        fn: str
-    ) -> Dict[str, Dict[str, str]]:
+from typing import Dict, List, Optional
+import pandas as pd
+import numpy as np
+from snakemake.shell import shell
+
+##### REQUIRED FUNTIONS #####
+
+def read_gene_table(fn: str) -> Dict[str, Dict[str, str]]:
     """
     Read gene table file.
 
@@ -69,7 +66,7 @@ def get_target_region(tg: str, gb: str) -> str:
         gb (str): Genome build (hg19, hg38).
     """
     gene_table = get_gene_table()
-    target_genes = return [k for k, v in gene_table.items() if v["type"] == "target"]
+    target_genes = [k for k, v in gene_table.items() if v["type"] == "target"]
 
     if tg not in target_genes:
         raise ValueError(f"'{tg}' is not among target genes: {target_genes}")
@@ -77,57 +74,41 @@ def get_target_region(tg: str, gb: str) -> str:
     return gene_table[tg][f"{gb}_region"]
 
 
-def is_chr(bam: str) -> bool:
-    """
-    Check whether SN tags in BAM file contain "chr" string.
-
-    Returns:
-        bool: True if found.
-
-    Args:
-        bam (str): BAM file.
-    """
-
-    header = pysam.view("-H", bam).strip().split("\n")
-
-    l = []
-
-    for line in header:
-        fields = line.split("\t")
-        if "@SQ" == fields[0]:
-            for field in fields:
-                if "SN:" in field:
-                    l.append(field.replace("SN:", ""))
-
-    return any(["chr" in x for x in l])
-
-
+##### GET ALL STARGAZER TARGET GENES #####
 
 stargazer_target_genes = get_target_genes()
+
+if snakemake.config["ref"]["build"] == "hg38" and "g6pd" in stargazer_target_genes:
+    stargazer_target_genes.remove("g6pd")
+if snakemake.config["ref"]["build"] == "hg38" and "gstt1" in stargazer_target_genes:
+    stargazer_target_genes.remove("gstt1") 
     
-if config["params"]["stargazer"]["target_genes"] == "ALL":
+##### GET USER SPECIFIED GENES #####
+
+if snakemake.config["params"]["stargazer"]["target_genes"] == "ALL":
     selected_genes = stargazer_target_genes
 else:
     selected_genes = []
-    for gene in config["params"]["stargazer"]["target_genes"].split(","):
+    for gene in snakemake.config["params"]["stargazer"]["target_genes"].split(","):
         selected_genes.append(gene.strip().lower())
     for gene in selected_genes:
         if gene not in stargazer_target_genes:
             raise ValueError(f"Unrecognized target gene found: {gene}")
-for gene in selected_genes:
 
-    _ = [is_chr(x) for x in get_sample_bams]
 
-    if all(_):
-        chr_str = "chr"
-    elif not any(_):
-        chr_str = ""
-    else:
-        raise ValueError("Mixed types of SN tags found.") 
-    
-    if config["ref"]["build"] == "GRCh38":
-        genome_build = "hg38"
-    elif config["ref"]["build"] == "GRCh37":
-        genome_build = "hg19"
 
-    target_region = chr_str + get_target_region(gene, genome_build).replace("chr", "")
+##### GET PROJECT DIR #####
+
+project_dir=snakemake.config["project_dir"]
+
+##### GET SAMPLES #####
+
+samples = pd.read_table(snakemake.config["samples"]).set_index("sample_name", drop=False)
+
+for sample in samples["sample_name"]:
+    random_selected_gene = selected_genes[0]
+    shell("head -n1 {project_dir}/{sample}/genes/{random_selected_gene}/stargazer/genotype.txt > {project_dir}/{sample}/genotypes/genotypes.txt\n")
+    for gene in selected_genes:
+        shell(
+            "tail -n+2 {project_dir}/{sample}/genes/{gene}/stargazer/genotype.txt >> {project_dir}/{sample}/genotypes/genotypes.txt\n"
+            )

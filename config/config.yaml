@@ -17,6 +17,12 @@ ref:
 ##### "gatk" or "deepvariant"
 variant_tool: "gatk"
 
+css_file: workflow/resources/report/css/styles.css
+js_file: workflow/resources/report/js/scripts.js
+css_heading: workflow/resources/report/css/heading.css
+css_heading: workflow/resources/report/css/body.css
+
+
 processing:
   remove-duplicates: true
   # Point to a bed file with, e.g., captured regions if necessary

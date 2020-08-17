@@ -48,7 +48,7 @@ if _platform == "darwin" or config["variant_tool"] == "gatk":
 
     rule select_calls:
         input:
-            ref=rules.get_genome.output[0],
+            ref=rules.get_genome.output["fasta"],
             vcf="{project_dir}/{sample}/genes/{gene}/vcf/{gene}.vcf.gz"
         output:
             vcf="{project_dir}/{sample}/genes/{gene}/filtered_vcf/{gene}.{vartype}.vcf.gz"
@@ -68,7 +68,7 @@ if _platform == "darwin" or config["variant_tool"] == "gatk":
 
     rule hard_filter_calls:
         input:
-            ref=rules.get_genome.output[0],
+            ref=rules.get_genome.output["fasta"],
             vcf="{project_dir}/{sample}/genes/{gene}/filtered_vcf/{gene}.{vartype}.vcf.gz"
         output:
             vcf="{project_dir}/{sample}/genes/{gene}/filtered_vcf/{gene}.{vartype}.hardfiltered.vcf.gz"

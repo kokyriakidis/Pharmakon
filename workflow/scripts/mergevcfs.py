@@ -102,7 +102,12 @@ def is_chr(bam: str) -> bool:
 
 ##### GET SELECTED GENES #####
 stargazer_target_genes = get_target_genes()
-    
+
+if snakemake.config["ref"]["build"] == "hg38" and "g6pd" in stargazer_target_genes:
+    stargazer_target_genes.remove("g6pd")
+if snakemake.config["ref"]["build"] == "hg38" and "gstt1" in stargazer_target_genes:
+    stargazer_target_genes.remove("gstt1") 
+
 if snakemake.config["params"]["stargazer"]["target_genes"] == "ALL":
     selected_genes = stargazer_target_genes
 else:

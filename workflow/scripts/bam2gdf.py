@@ -1,22 +1,12 @@
-import os
-import pysam
-import statistics
-from typing import Optional, List, TextIO
-
-def get_gene_table() -> Dict[str, Dict[str, str]]:
-    """
-    Get gene table object.
-
-    Returns:
-        dict[str, dict[str, str]]: Gene table object.
-    """
-
-    return read_gene_table("workflow/resources/stargazer/gene_table.txt")
+##############################
+from typing import Dict, List, Optional
+import pandas as pd
+import numpy as np
+from snakemake.shell import shell
+from sys import platform as _platform
 
 
-def read_gene_table(
-        fn: str
-    ) -> Dict[str, Dict[str, str]]:
+def read_gene_table(fn: str) -> Dict[str, Dict[str, str]]:
     """
     Read gene table file.
 
@@ -45,274 +35,93 @@ def read_gene_table(
 
     return result
 
-
-def sm_tag(bam: str) -> str:
+def get_gene_table() -> Dict[str, Dict[str, str]]:
     """
-    Extract SM tag from BAM file.
+    Get gene table object.
 
     Returns:
-        str: SM tag.
-
-    Args:
-        bam (str): BAM file.
+        dict[str, dict[str, str]]: Gene table object.
     """
 
-    header = pysam.view("-H", bam).strip().split("\n")
+    return read_gene_table("workflow/resources/stargazer/gene_table.txt")
 
-    l = []
-
-    for line in header:
-        fields = line.split("\t")
-        if "@RG" == fields[0]:
-            for field in fields:
-                if "SM:" in field:
-                    l.append(field.replace("SM:", ""))
-
-    l = list(set(l))
-
-    if not l:
-        raise ValueError(f"SM tag not found: {bam}")
-
-    if len(l) > 1:
-        result = l[0]
-    else:
-        result = l[0]
-
-    return result
-
-
-def parse_region(
-        region: str,
-        omit: bool = False
-    ) -> List[str]:
-    """
-    Parse region.
+def get_target_genes() -> List[str]:
+    """Get the list of target gene names.
 
     Returns:
-        list[str]: Parsed region [chr, start, end].
-
-    Args:
-        region (str): Region to be parsed.
-        omit (bool): Remove the 'chr' string.
+        list[str]: A list of gene names.
     """
-    if omit:
-        chr = region.split(":")[0].replace("chr", "")
-    else:
-        chr = region.split(":")[0]
-
-    return (
-        chr,
-        int(region.split(":")[1].split("-")[0]),
-        int(region.split(":")[1].split("-")[1]),
-    )
-
-
-def sort_regions(regions: List[str]) -> List[str]:
-    """
-    Sort regions.
-
-    Returns:
-        list[str]: Sorted regions.
-
-    Args:
-        regions (list[str]): Regions.
-    """
-
-    def f(x):
-        r = parse_region(x)
-        if "X" in r[0]:
-            chr = 23
-        elif "Y" in r[0]:
-            chr = 24
-        else:
-            chr = int(r[0].replace("chr", ""))
-        return (chr, r[1], r[2])
-    return sorted(regions, key = f)
-
-
-def bam2sdf(
-        gb:str,
-        tg: str,
-        cg: str,
-        bam: List[str],
-        **kwargs
-    ) -> str:
-    """
-    Create SDF file from BAM file(s).
-
-    Returns:
-        str: SDF file.
-
-    Args:
-        gb (str): Genome build (hg19, hg38).
-        tg (str): Target gene.
-        cg (str): Control gene or region.
-        bam (list[str]): BAM file(s).
-    """
-
     gene_table = get_gene_table()
+    return [k for k, v in gene_table.items() if v["type"] == "target"]
 
-    targets = [k for k, v in gene_table.items() if v["type"] == "target"]
-
-    if tg not in targets:
-        raise ValueError(f"'{tg}' is not among target genes: {targets}")
-
-    tr = gene_table[tg][f"{gb}_region"].replace("chr", "")
-
-    if "chr" in cg or ":" in cg:
-        cr = cg.replace("chr", "")
-
-    else:
-        controls = [k for k, v in gene_table.items() if v["control"] == "yes"]
-
-        if cg not in controls:
-            raise ValueError(f"'{cg}' is not among control genes: {controls}")
-
-        cr = gene_table[cg][f"{gb}_region"].replace("chr", "")
-
-    regions = sort_regions([tr, cr])
-
-    # Get sample and sequence names from BAM headers.
-    sm = []
-    sn = []
-    for x in bam:
-        sm.append(sm_tag(x))
-
-        result = pysam.view("-H", x).strip().split("\n")
-        for line in result:
-            fields = line.split("\t")
-            if "@SQ" == fields[0]:
-                for field in fields:
-                    if "SN:" in field:
-                        y = field.replace("SN:", "")
-                        if y not in sn:
-                            sn.append(y)
-
-    # Determine whether the "chr" string should be used.
-    if any(["chr" in x for x in sn]):
-        chr_str = "chr"
-    else:
-        chr_str = ""
-
-    result = ""
-
-    for region in regions:
-        temp = pysam.depth("-a", "-Q", "1", "-r", f"{chr_str}{region}", *bam)
-        result += temp
-
-    return result
-
-
-def sdf2gdf(
-        fn: str,
-        id: List[str],
-        f: Optional[TextIO] = None, 
-        **kwargs
-    ) -> str:
-    """
-    Create GDF file from SDF file.
+def get_target_region(tg: str, gb: str) -> str:
+    """Get the genomic region for the target gene.
 
     Returns:
-        str: GDF file.
+        str: Genomic region.
 
     Args:
-        fn (str): SDF file.
-        id (list[str]): Sample ID(s).
-        f (TextIO, optional): SDF file.
+        tg (str): Target gene.
+        gb (str): Genome build (hg19, hg38).
     """
+    gene_table = get_gene_table()
+    target_genes = [k for k, v in gene_table.items() if v["type"] == "target"]
 
-    if fn:
-        f = open(fn)
+    if tg not in target_genes:
+        raise ValueError(f"'{tg}' is not among target genes: {target_genes}")
 
-    # Get the header.
-    result = "Locus\tTotal_Depth\tAverage_Depth_sample"
-    for x in id:
-        result += f"\tDepth_for_{x}"
-    result += "\n"
+    return gene_table[tg][f"{gb}_region"]
 
-    # Check the sample count with the first line.
-    fields1 = next(f).strip().split("\t")
-    if len(fields1) - 2 != len(id):
-        raise ValueError("incorrect sample count")
-    locus = f"{fields1[0]}:{fields1[1]}"
-    depth = [int(x) for x in fields1[2:]]
-    avg = round(statistics.mean(depth), 2)
-    fields2 = [locus, sum(depth), avg] + depth
-    result += "\t".join([str(x) for x in fields2]) + "\n"
-
-    # Read rest of the lines.
-    for line in f:
-        fields1 = line.strip().split("\t")
-        locus = f"{fields1[0]}:{fields1[1]}"
-        depth = [int(x) for x in fields1[2:]]
-        avg = round(statistics.mean(depth), 2)
-        fields2 = [locus, sum(depth), avg] + depth
-        result += "\t".join([str(x) for x in fields2]) + "\n"
-
-    if fn:
-        f.close()
-
-    return result
+##############################
 
 
+##### GET SELECTED GENES #####
+stargazer_target_genes = get_target_genes()
 
-def bam2gdf(
-        genome_build: str,
-        target_gene : str,
-        control_gene: str,
-        output_file: str,
-        bam_file: List[str],
-        bam_dir: Optional[str] = None,
-        bam_list: Optional[str] = None,
-        **kwargs
-    ) -> None:
-    """Convert BAM files to a GDF file.
+if snakemake.config["ref"]["build"] == "hg38" and "g6pd" in stargazer_target_genes:
+    stargazer_target_genes.remove("g6pd")
+if snakemake.config["ref"]["build"] == "hg38" and "gstt1" in stargazer_target_genes:
+    stargazer_target_genes.remove("gstt1") 
 
-    This command calculates read depth from BAM files and then outputs a
-    GDF (GATK-DepthOfCoverage Format) file, which is one of the input 
-    files for the Stargazer program. Even though ``gatk DepthOfCoverage`` 
-    could still be used to make GDF files, we recommend that you use this 
-    command because the former is too heavy (i.e. requires too much memory) 
-    for such a simple task (i.e. counting reads). The latter uses 
-    ``samtools depth`` under the hood, which is way faster and requires 
-    way less memory. Another nice about using ``bam2gdf`` instead of 
-    ``samtools depth`` is that everything is already parametrized for 
-    compatibility with Stargazer. 
+if snakemake.config["params"]["stargazer"]["target_genes"] == "ALL":
+    selected_genes = stargazer_target_genes
+else:
+    selected_genes = []
+    for gene in snakemake.config["params"]["stargazer"]["target_genes"].split(","):
+        selected_genes.append(gene.strip().lower())
+    for gene in selected_genes:
+        if gene not in stargazer_target_genes:
+            raise ValueError(f"Unrecognized target gene found: {gene}")
 
-    .. note::
-        You do NOT need to install ``samtools`` to run this command.
+##### GET CONTROL GENE #####
+control_gene=snakemake.config["params"]["stargazer"]["control_gene"]
 
-    Args:
-        genome_build (str):
-            Genome build ('hg19' or 'hg38').
-        target_gene (str):
-            Name of target gene (e.g. 'cyp2d6').
-        control_gene (str):
-            Name or region of control gene (e.g. ‘vdr’, 
-            ‘chr12:48232319-48301814’)
-        output_file (str):
-            Write output to this file.
-        bam_file (list[str]):
-            Input BAM files.
-        bam_dir (str, optional):
-            Use all BAM files in this directory as input.
-        bam_list (str, optional):
-            List of input BAM files, one file per line.
-    """
-    # Parse keyward arguments from the decorator.
-    input_files = kwargs["input_files"]
+##### GET PROJECT DIR #####
+project_dir=snakemake.config["project_dir"]
 
-    sdf = bam2sdf(genome_build, target_gene, control_gene, input_files)
-    sm = [sm_tag(x) for x in input_files]
-    result = sdf2gdf(sdf, sm)
-    with open(output_file, "w") as f:
-        f.write(result)
+##### GET SAMPLES #####
+samples = pd.read_table(snakemake.config["samples"]).set_index("sample_name", drop=False)
+
+##### GET REFERENCE BUILD #####
+if snakemake.config["ref"]["build"] == "hg38":
+    genome_build = "hg38"
+elif snakemake.config["ref"]["build"] == "hg19":
+    genome_build = "hg19"
 
 
-bam2gdf(
-        snakemake.input["genome_build"],
-        snakemake.input["target_gene"],
-        snakemake.input["control_gene"],
-        snakemake.output["output_file"],
-        bam_file = snakemake.input["bam_file"]
-    )
+
+for sample in samples["sample_name"]:
+    for gene in selected_genes:
+        if _platform == "darwin" or snakemake.config["variant_tool"] == "gatk":
+            INPUT = project_dir + "/" + sample + "/applybqsr/" +  sample + ".bam"
+        elif (_platform == "linux" or _platform == "linux2") and config["variant_tool"] == "deepvariant":
+            # Case 1: no duplicate removal
+            INPUT = project_dir + "/" + sample + "/mapped/" +  sample + ".sorted.bam"
+            if snakemake.config["processing"]["remove-duplicates"]:
+                # case 2: remove duplicates
+                INPUT = project_dir + "/" + sample + "/dedup/" +  sample + ".bam"
+        OUTPUT = project_dir + "/" + sample + "/genes/" + gene + "/gdf/" + gene + ".gdf"
+
+        shell("pypgx bam2gdf {genome_build} {gene} {control_gene} {OUTPUT} {INPUT}")
+
+

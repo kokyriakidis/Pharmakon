@@ -11,6 +11,7 @@ from tempfile import TemporaryDirectory
 from functools import wraps
 
 
+
 def read_selected_genes_table(fn: str) -> List[str]:
     """
     Read selected genes file.
@@ -36,8 +37,6 @@ filtertype="recalibrated" if config["filtering"]["vqsr"] else "hardfiltered"
 #selected_genes_table = "{project_dir}/{sample}/intervals/SUMMARY/SELECTED_GENES.txt"
 
 #selected_genes = read_selected_genes_table(selected_genes_table)
-
-
 
 
 
@@ -133,6 +132,10 @@ else:
         if gene not in stargazer_target_genes:
             raise ValueError(f"Unrecognized target gene found: {gene}")
 
+if config["ref"]["build"] == "hg38":
+    selected_genes.remove("g6pd")
+    selected_genes.remove("gstt1")
+
 ##### Target rules #####
 
 rule reference:
@@ -162,13 +165,18 @@ rule reference:
         #"{output_dir}/{genome_build}/seq/{genome_build}.fa".format(output_dir=config["ref"]["output_dir"], genome_build=config["ref"]["build"])
         #"{output_dir}/{genome_build}/variation/Mills_and_1000G_gold_standard.indels.vcf.gz".format(output_dir=config["ref"]["output_dir"], genome_build=config["ref"]["build"])
         #"{output_dir}/{genome_build}/variation/dbsnp-153.vcf.gz".format(output_dir=config["ref"]["output_dir"], genome_build=config["ref"]["build"])
-        expand("{project_dir}/{sample}/dedup/{sample}.bam", project_dir=config["project_dir"], sample=samples.index),
-        expand("{project_dir}/{sample}/applybqsr/{sample}.bam", project_dir=config["project_dir"], sample=samples.index)
+        #expand("{project_dir}/{sample}/dedup/{sample}.bam", project_dir=config["project_dir"], sample=samples.index),
+        #expand("{project_dir}/{sample}/applybqsr/{sample}.bam", project_dir=config["project_dir"], sample=samples.index)
+        #expand("{project_dir}/{sample}/genes/{gene}/final_vcf/{gene}.vcf.gz", project_dir=config["project_dir"], sample=samples.index, gene=selected_genes)
+        #expand("{project_dir}/{sample}/qc/multiqc/multiqc.html", project_dir=config["project_dir"], sample=samples.index)
+        #expand("{project_dir}/{sample}/genes/{gene}/gdf/{gene}.gdf", project_dir=config["project_dir"], sample=samples.index, gene=selected_genes)
+        #expand("{project_dir}/{sample}/genes/{gene}/stargazer/genotype.txt", project_dir=config["project_dir"], sample=samples.index, gene=selected_genes)
+        #expand("{project_dir}/{sample}/genes/cacna1s/stargazer/genotype.txt", project_dir=config["project_dir"], sample=samples.index)
+        #expand("{project_dir}/intervals/{gene}.bed", project_dir=config["project_dir"], gene=selected_genes)
+        #expand("{project_dir}/{sample}/genotypes/genotypes.txt", project_dir=config["project_dir"], sample=samples.index)
+        expand("{project_dir}/{sample}/report/{sample}_PGxSnake_Report.html", project_dir=config["project_dir"], sample=samples.index)
 
-
-
-
-
+        
 #rule all:
 #    input:
 #        expand("{project_dir}/{sample}/final_vcf/{sample}.vcf.gz", project_dir=config["project_dir"], sample=samples.index),
@@ -181,8 +189,8 @@ rule reference:
 
 include: "rules/reference.smk"
 include: "rules/mapping.smk"
-#include: "rules/calling.smk"
-#include: "rules/filtering.smk"
-#include: "rules/stargazer.smk"
-#include: "rules/qc.smk"
-#include: "rules/annotation.smk"
+include: "rules/calling.smk"
+include: "rules/filtering.smk"
+include: "rules/qc.smk"
+include: "rules/stargazer.smk"
+include: "rules/report.smk"
