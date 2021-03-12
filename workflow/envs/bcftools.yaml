@@ -2,4 +2,4 @@ channels:
   - bioconda
   - conda-forge
 dependencies:
-  - samtools =1.11
+  - bcftools ==1.10

@@ -1,103 +1,124 @@
-##### GATK SPECIFIC FUNCTIONS #####
+from multiprocessing import cpu_count
 
-def get_gatk_regions_param(regions="{project_dir}/intervals/{gene}.bed", default=""):
-    if regions:
-        params = "--intervals '{}' ".format(regions)
-        padding = config["processing"].get("region-padding")
-        if padding:
-            params += "--interval-padding {}".format(padding)
-        return params
-    return default
-
-def get_call_variants_params(wildcards, input):
-    return (get_gatk_regions_param(regions=input.regions, default="--intervals {}".format(wildcards.gene)) +
-            config["params"]["gatk"]["HaplotypeCaller"])
-
-##### END OF GATK SPECIFIC FUNCTIONS #####
-
-
-##### DEEPVARIANT SPECIFIC FUNCTIONS #####
-
-def get_deepvariant_regions_param(regions="{project_dir}/intervals/{gene}.bed", default=""):
-    if regions:
-        params = "--regions '{}' ".format(regions)
-        return params
-    return default
-
-def get_deepvariant_params(wildcards, input):
-    return (get_deepvariant_regions_param(regions=input.regions, default="--regions {}".format(wildcards.gene)) +
-            config["params"]["deepvariant"]["extra"])
-
-##### END OF DEEPVARIANT SPECIFIC FUNCTIONS #####
-
-##### COMMON FUNCTIONS #####
-
-def get_sample_bams(wildcards):
+rule deepvariant__illumina_germline_variants:
     """
-    Get the appropriate aligned bams of a given sample.
+    Variant calling on Illumina reads using deep neural network.
     """
-    if _platform == "darwin" or config["variant_tool"] == "gatk":
-        f = "{project_dir}/{sample}/applybqsr/{sample}.bam"
-        return f
-    elif (_platform == "linux" or _platform == "linux2") and config["variant_tool"] == "deepvariant":
-        # Case 1: no duplicate removal
-        f = "{project_dir}/{sample}/mapped/{sample}.sorted.bam"
-        if config["processing"]["remove-duplicates"]:
-            # case 2: remove duplicates
-            f = "{project_dir}/{sample}/dedup/{sample}.bam"
-        return f
-
-##### END OF COMMON FUNCTIONS #####
-
-
-if _platform == "darwin" or config["variant_tool"] == "gatk":
-
-    rule call_variants:
-        input:
-            bam=get_sample_bams,
-            ref=rules.get_genome.output["fasta"],
-            idx=rules.get_genome.output["fasta_dict"],
-            known=rules.get_dbsnp.output["dbsnp"],
-            tbi=rules.get_dbsnp.output["dbsnp_tbi"],
-            regions="{project_dir}/intervals/{gene}.bed"
-        output:
-            gvcf="{project_dir}/{sample}/genes/{gene}/gvcf/{gene}.g.vcf.gz"
-        log:
-            "{project_dir}/{sample}/logs/gatk/haplotypecaller/{gene}/{sample}.{gene}.log"
-        params:
-            extra=get_call_variants_params
-        wrapper:
-            "0.64.0/bio/gatk/haplotypecaller"
-
-
-    rule genotype_variants:
-        input:
-            ref=rules.get_genome.output["fasta"],
-            gvcf="{project_dir}/{sample}/genes/{gene}/gvcf/{gene}.g.vcf.gz"
-        output:
-            vcf="{project_dir}/{sample}/genes/{gene}/vcf/{gene}.vcf.gz"
-        params:
-            extra=config["params"]["gatk"]["GenotypeGVCFs"]
-        log:
-            "{project_dir}/{sample}/logs/gatk/genotypegvcfs/{gene}/{sample}.{gene}.log"
-        wrapper:
-            "0.64.0/bio/gatk/genotypegvcfs"
+    input:
+        bam   = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.illumina.sorted.bam",
+        bai   = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.illumina.sorted.bam.bai",
+        fasta = config["fasta"],
+        fai   = config["fai"]
+    output:
+        vcf        = f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.deepvariant.vcf.gz",
+        vcf_index  = f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.deepvariant.vcf.gz.tbi",
+        gvcf       = f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.deepvariant.g.vcf.gz",
+        gvcf_index = f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.deepvariant.g.vcf.gz.tbi",
+        report     = f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.deepvariant.visual_report.html"
+    params:
+        model = "WGS"
+    threads:
+        lambda cores: cpu_count() - 2
+    log:
+        out = f"{OUTDIR}/{{sample}}/logs/deepvariant/{{sample}}.deepvariant.vcf.out",
+        err = f"{OUTDIR}/{{sample}}/logs/deepvariant/{{sample}}.deepvariant.vcf.err"
+    benchmark:
+        f"{OUTDIR}/{{sample}}/logs/deepvariant/{{sample}}.deepvariant.vcf.benchmark"
+    singularity:
+        "docker://google/deepvariant:1.1.0"
+    shell:
+        """
+        /opt/deepvariant/bin/run_deepvariant \
+            --model_type={params.model} \
+            --ref={input.fasta} \
+            --reads={input.bam} \
+            --output_vcf={output.vcf} \
+            --output_gvcf={output.gvcf} \
+            --num_shards={threads} \
+        1> {log.out} \
+        2> {log.err}
+        """
 
 
-elif (_platform == "linux" or _platform == "linux2") and config["variant_tool"] == "deepvariant":
+rule pepper__pacbio_germline_variants:
+    """
+    Variant calling on PacBio reads using deep neural network.
+    """
+    input:
+        bam   = f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.pacbio.sorted.bam",
+        bai   = f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.pacbio.sorted.bam.bai",
+        fasta = config["fasta"],
+        fai   = config["fai"]
+    output:
+        output_dir    = f"{OUTDIR}/{{sample}}/pepper",
+        output_prefix = f"{{sample}}.pepper",
+        vcf           = f"{OUTDIR}/{{sample}}/pepper/{{sample}}.pacbio.pepper.vcf.gz",
+        vcf_index     = f"{OUTDIR}/{{sample}}/pepper/{{sample}}.pacbio.pepper.vcf.gz.tbi",
+        gvcf          = f"{OUTDIR}/{{sample}}/pepper/{{sample}}.pacbio.pepper.g.vcf.gz",
+        gvcf_index    = f"{OUTDIR}/{{sample}}/pepper/{{sample}}.pacbio.pepper.g.vcf.gz.tbi",
+        report        = f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.pacbio.pepper.visual_report.html"
+    threads:
+        lambda cores: cpu_count() - 2
+    log:
+        out = f"{OUTDIR}/{{sample}}/logs/pepper/{{sample}}.pacbio.pepper.vcf.out",
+        err = f"{OUTDIR}/{{sample}}/logs/pepper/{{sample}}.pacbio.pepper.vcf.err"
+    benchmark:
+        f"{OUTDIR}/{{sample}}/logs/pepper/{{sample}}.pacbio.pepper.vcf.benchmark"
+    singularity:
+        "docker://kishwars/pepper_deepvariant:r0.4"
+    shell:
+        """
+        run_pepper_margin_deepvariant call_variant \
+            -f {input.fasta} \
+            -b {input.bam} \
+            -o {output.output_dir} \
+            -p {output.output_prefix} \
+            -t {threads} \
+            -s {wildcards.sample} \
+            --gvcf \
+            --ccs \
+        1> {log.out} \
+        2> {log.err}
+        """
 
-    rule deepvariant:
-        input:
-            bam=get_sample_bams,
-            ref=rules.get_genome.output["fasta"],
-            regions="{project_dir}/intervals/{gene}.bed"
-        output:
-            vcf="{project_dir}/{sample}/genes/{gene}/final_vcf/{gene}.vcf.gz"
-        params:
-            model=config["params"]["deepvariant"]["model"],
-            extra=get_deepvariant_params
-        threads: 2
-        log:
-            "{project_dir}/{sample}/logs/deepvariant/{gene}/{sample}.{gene}.log"
-        wrapper:
-            "0.64.0/bio/deepvariant"
+
+rule pepper__nanopore_germline_variants:
+    """
+    Variant calling using deep neural network.
+    """
+    input:
+        bam   = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.nanopore.sorted.bam",
+        bai   = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.nanopore.sorted.bam.bai",
+        fasta = config["fasta"],
+        fai   = config["fai"]
+    output:
+        output_dir    = f"{OUTDIR}/{{sample}}/pepper",
+        output_prefix = f"{{sample}}.nanopore.pepper",
+        vcf           = f"{OUTDIR}/{{sample}}/pepper/{{sample}}.nanopore.pepper.vcf.gz",
+        vcf_index     = f"{OUTDIR}/{{sample}}/pepper/{{sample}}.nanopore.pepper.vcf.gz.tbi",
+        gvcf          = f"{OUTDIR}/{{sample}}/pepper/{{sample}}.nanopore.pepper.g.vcf.gz",
+        gvcf_index    = f"{OUTDIR}/{{sample}}/pepper/{{sample}}.nanopore.pepper.g.vcf.gz.tbi",
+        report        = f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.nanopore.pepper.visual_report.html"
+    threads:
+        lambda cores: cpu_count() - 2
+    log:
+        out = f"{OUTDIR}/{{sample}}/logs/pepper/{{sample}}.nanopore.pepper.vcf.out",
+        err = f"{OUTDIR}/{{sample}}/logs/pepper/{{sample}}.nanopore.pepper.vcf.err"
+    benchmark:
+        f"{OUTDIR}/{{sample}}/logs/pepper/{{sample}}.nanopore.pepper.vcf.benchmark"
+    singularity:
+        "docker://kishwars/pepper_deepvariant:r0.4"
+    shell:
+        """
+        run_pepper_margin_deepvariant call_variant \
+            -f {input.fasta} \
+            -b {input.bam} \
+            -o {output.output_dir} \
+            -p {output.output_prefix} \
+            -t {threads} \
+            -s {wildcards.sample} \
+            --gvcf \
+            --ont \
+        1> {log.out} \
+        2> {log.err}
+        """

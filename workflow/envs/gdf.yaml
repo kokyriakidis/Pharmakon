@@ -1,9 +1,0 @@
-channels:
-  - conda-forge
-  - bioconda
-dependencies:
-  - python =3.6
-  - pandas =0.23
-  - pip
-  - pip:
-    - pypgx ==0.1.28

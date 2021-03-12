@@ -1,67 +1,96 @@
-def get_fastq(wildcards):
-    """Get fastq files of given sample-unit."""
-    fastqs = samples.loc[wildcards.sample, ["fq1", "fq2"]].dropna()
-    return {"r1": fastqs.fq1, "r2": fastqs.fq2}
+from multiprocessing import cpu_count
 
-def get_deepvariant_bams(bai=False):
-    # case 1: no duplicate removal
-    f = "{project_dir}/{sample}/mapped/{sample}.sorted.bam"
-    if config["processing"]["remove-duplicates"]:
-        # case 2: remove duplicates
-        f = "{project_dir}/{sample}/dedup/{sample}.bam"
-    return f
+#def get_bams(wildcards):
+#    """Get all aligned reads of given sample."""
+#    if config["datatype"] == "ILLUMINA-WGS" or config["datatype"] == "ILLUMINA-WES" or config["datatype"] == "NANOPORE":
+#        return expand(f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.sorted.bam", sample=wildcards.sample)
+#    elif config["datatype"] == "PACBIO":
+#        return expand(f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.sorted.bam", sample=wildcards.sample)
 
-def get_gatk_bams(wildcards):
-    """Get all aligned reads of given sample."""
-    return expand("{project_dir}/{sample}/applybqsr/{sample}.bam",
-                  sample=wildcards.sample,
-                  project_dir=config["project_dir"])
 
-rule fastqc:
+rule fastqc__quality_control:
+    """
+    Aggregate quality control results from all FastQC reports and generate summary HTML table
+    :input reads: Sequenced reads in fastq format
+    :output html: Quality report in HTML format
+    :output zip: Aggregate quality control results
+    """
     input:
-        unpack(get_fastq)
+        reads = get_samples_data
     output:
-        html="{project_dir}/{sample}/qc/fastqc/{sample}.html",
-        zip="{project_dir}/{sample}/qc/fastqc/{sample}.zip"
+        html = f"{OUTDIR}/{{sample}}/qc/fastqc/{{sample}}_fastqc.html",
+        zip  = f"{OUTDIR}/{{sample}}/qc/fastqc/{{sample}}_fastqc.zip"
+    log:
+        f"{OUTDIR}/{{sample}}/logs/fastqc/{{sample}}.fastqc.log"
+    benchmark:
+        f"{OUTDIR}/{{sample}}/logs/fastqc/{{sample}}.fastqc.benchmark"
+    threads:
+        lambda cores: cpu_count() - 2
     wrapper:
-        "0.64.0/bio/fastqc"
+        "0.72.0/bio/fastqc"
 
-if _platform == "darwin" or config["variant_tool"] == "gatk":
 
-    rule samtools_stats:
-        input:
-            get_gatk_bams
-        output:
-            "{project_dir}/{sample}/qc/samtools-stats/{sample}.txt"
-        log:
-            "{project_dir}/{sample}/logs/samtools-stats/{sample}.log"
-        wrapper:
-            "0.64.0/bio/samtools/stats"
+rule samtools__bam_stats:
+    """
+    Generate stats using samtools
+    :input bams: Read alignment files in a binary format
+    :output stats: Statistics from BAM files outputted in a text format
+    """
+    input:
+        bams = f"{OUTDIR}/{{sample}}/{{mapper}}/{{sample}}.sorted.bam"
+    output:
+        stats = f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.bam.stats.txt"
+    log:
+        f"{OUTDIR}/{{sample}}/logs/samtools/{{sample}}.bam.stats.log"
+    benchmark:
+        f"{OUTDIR}/{{sample}}/logs/samtools/{{sample}}.bam.stats.benchmark"
+    wrapper:
+        "0.72.0/bio/samtools/stats"
 
-else:
 
-    rule samtools_stats:
-        input:
-            get_deepvariant_bams
-        output:
-            "{project_dir}/{sample}/qc/samtools-stats/{sample}.txt"
-        log:
-            "{project_dir}/{sample}/logs/samtools-stats/{sample}.log"
-        wrapper:
-            "0.64.0/bio/samtools/stats"
+rule bcftools_stats:
+    """
+    Calculating VCF statistics using bcftools
+    :input bams: Read alignment files in a binary format
+    :output stats: Statistics from VCF files outputted in a text format
+    """
+    input: 
+        vcf = f"{OUTDIR}/{{sample}}/{{caller}}/{{sample}}.{{caller}}.vcf.gz"
+    output: 
+        stats = f"{OUTDIR}/{{sample}}/qc/bcftools/{{sample}}.{{caller}}.vcf.stats.txt"
+    log: 
+        f"{OUTDIR}/{{sample}}/logs/bcftools/{{sample}}.{{caller}}.vcf.stats.log"
+    benchmark: 
+        f"{OUTDIR}/{{sample}}/logs/bcftools/{{sample}}.{{caller}}.vcf.stats.benchmark"
+    params: 
+        fasta   = f"--fasta-ref {config['fasta']}", 
+        filters = "--apply-filters PASS", 
+        sample  = f"-s {{sample}}"
+    threads:
+        lambda cores: cpu_count() - 2
+    conda: 
+        "envs/bcftools.yaml"
+    message: "Executing {rule}: Calculating VCF statistics for {input}."
+    shell: 
+        """
+        (bcftools stats --threads {threads} {params.fasta} {params.filters} {params.sample} {input.vcf} > {output.stats}) > {log} 2>&1
+        """
 
 
 rule multiqc:
+    """
+    Generate QC report using multiqc
+    """
     input:
-        expand(["{project_dir}/{sample}/qc/samtools-stats/{sample}.txt",
-                "{project_dir}/{sample}/qc/fastqc/{sample}.zip",
-                "{project_dir}/{sample}/qc/dedup/{sample}.metrics.txt",
-                "{project_dir}/{sample}/recal/{sample}.grp"],
-                sample=samples.index,
-                project_dir=config["project_dir"])
+        expand([f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.bam.stats.txt",
+                f"{OUTDIR}/{{sample}}/qc/bcftools/{{sample}}.{{caller}}.vcf.stats.txt",
+                f"{OUTDIR}/{{sample}}/qc/fastqc/{{sample}}_fastqc.zip"],
+                sample=f"{{sample}}")
     output:
-        expand("{project_dir}/{sample}/qc/multiqc/multiqc.html", project_dir=config["project_dir"], sample=samples.index)
+        expand(f"{OUTDIR}/{{sample}}/qc/multiqc/multiqc.html", sample=wildcards.sample)
     log:
-        expand("{project_dir}/{sample}/logs/multiqc/multiqc.log", project_dir=config["project_dir"], sample=samples.index)
+        expand(f"{OUTDIR}/{{sample}}/logs/multiqc/multiqc.log", sample=wildcards.sample)
+    benchmark:
+        expand(f"{OUTDIR}/{{sample}}/logs/multiqc/multiqc.benchmark", sample=wildcards.sample)
     wrapper:
-        "0.64.0/bio/multiqc"
+        "0.72.0/bio/multiqc"

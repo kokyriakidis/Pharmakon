@@ -1,164 +1,136 @@
-def get_map_reads_input(wildcards):
-    if is_paired_end(wildcards.sample):
-        return samples.loc[(wildcards.sample), ["fq1", "fq2"]].dropna()
+from multiprocessing import cpu_count
 
-def is_paired_end(sample):
-    sample_unit = samples.loc[sample]
-    fq1_null = pd.isnull(sample_unit["fq1"])
-    fq2_null = pd.isnull(sample_unit["fq2"])
-    paired = not fq1_null and not fq2_null
-    assert paired, "Error in sample {}, must be paired end.".format(sample)
-    return paired
-
-def get_read_group(wildcards):
-    """Denote sample name and platform in read group."""
-    return r"-R '@RG\tID:{sample}\tSM:{sample}\tPL:ILLUMINA'".format(sample=wildcards.sample)
-
-##### GATK SPECIFIC FUNCTIONS #####
-
-def get_recal_input(bai=False):
-    # case 1: no duplicate removal
-    f = "{project_dir}/{sample}/mapped/{sample}.sorted.bam"
-    if config["processing"]["remove-duplicates"]:
-        # case 2: remove duplicates
-        f = "{project_dir}/{sample}/dedup/{sample}.bam"
-    if bai:
-        # case 3: need an index because random access is required
-        f += ".bai"
-        return f
-    else:
-        return f
-
-def get_gatk_regions_param(regions=config["processing"].get("restrict-regions"), default=""):
-    if regions:
-        params = "--intervals '{}' ".format(regions)
-        padding = config["processing"].get("region-padding")
-        if padding:
-            params += "--interval-padding {}".format(padding)
-        return params
-    return default
-
-def get_recal_params(wildcards, input):
-    return (get_gatk_regions_param(regions=input.regions, default="") +
-            config["params"]["gatk"]["BaseRecalibrator"])
-
-##### END OF GATK SPECIFIC FUNCTIONS #####
+def get_samples_data(wildcards):
+    if config["datatype"] == "ILLUMINA":
+        paired = (len(config["samples"][wildcards.sample]) == 2)
+        assert paired, f"Error in sample {wildcards.sample}, must be paired end."
+        return config["samples"][wildcards.sample]
+    elif config["datatype"] == "NANOPORE" or config["datatype"] == "PACBIO":
+        paired = (len(config["samples"][wildcards.sample]) == 1)
+        assert paired, f"Error in sample {wildcards.sample}, must contain a single fasta file."
+        return config["samples"][wildcards.sample]
 
 
-if _platform == "darwin":
-    
-    rule map_reads:
-        input:
-            reads=get_map_reads_input
-        output:
-            "{project_dir}/{sample}/mapped/{sample}.sorted.bam"
-        log:
-            "{project_dir}/{sample}/logs/bwa_mem/{sample}.log"
-        params:
-            index="{output_dir}/{genome_build}/bwa/{genome_build}.fa".format(output_dir=config["ref"]["output_dir"], genome_build=config["ref"]["build"]),
-            extra=get_read_group,
-            sort="samtools",
-            sort_order="coordinate"
-        threads: 8
-        wrapper:
-            "0.64.0/bio/bwa/mem"
-
-elif _platform == "linux" or _platform == "linux2":
-    
-    rule map_reads:
-        input:
-            reads=get_map_reads_input
-        output:
-            "{project_dir}/{sample}/mapped/{sample}.sorted.bam"
-        log:
-            "{project_dir}/{sample}/logs/bwa_mem2/{sample}.log"
-        params:
-            index="{output_dir}/{genome_build}/bwa/{genome_build}.fa".format(output_dir=config["ref"]["output_dir"], genome_build=config["ref"]["build"]),
-            extra=get_read_group,
-            sort="samtools",
-            sort_order="coordinate"
-        threads: 8
-        wrapper:
-            "0.64.0/bio/bwa-mem2/mem"
-
-
-rule mark_duplicates:
+rule minimap2__map_illumina_reads:
+    """
+    For input preprocessed reads minimap2 finds the most similar genomic region in the provided reference genome.
+    Samtools then sort aligned reads according to mapped position on reference genome.
+    :input reference: Reference genomic sequences in fasta format
+    :input query: Illumina gzipped fastq files with left and right reads e.g. ['path/to/{sample}_R1.fastq.gz','path/to/{sample}_R2.fastq.gz']
+    :output bam: Ordered mapped reads according to their location on reference genome
+    """
     input:
-        "{project_dir}/{sample}/mapped/{sample}.sorted.bam"
+        reference = config["fasta"],
+        query = get_samples_data
     output:
-        bam="{project_dir}/{sample}/dedup/{sample}.bam",
-        metrics="{project_dir}/{sample}/qc/dedup/{sample}.metrics.txt"
+        f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.illumina.sorted.bam"
     log:
-        "{project_dir}/{sample}/logs/picard/dedup/{sample}.log"
-    params:
-        config["params"]["picard"]["MarkDuplicates"]
-    wrapper:
-        "0.64.0/bio/picard/markduplicates"
-
-
-rule get_selected_intervals:
-    input:
-        expand("{project_dir}/{sample}/dedup/{sample}.bam", project_dir=config["project_dir"], sample=samples.index) if config["processing"]["remove-duplicates"] == True else expand("{project_dir}/{sample}/mapped/{sample}.sorted.bam", project_dir=config["project_dir"], sample=samples.index)
-    output:
-        expand("{project_dir}/intervals/SUMMARY/SELECTED_GENES_UNSORTED.bed", project_dir=config["project_dir"], sample=samples.index),
-        expand("{project_dir}/intervals/{gene}.bed", project_dir=config["project_dir"], gene=selected_genes)
-    conda:
-        "../envs/intervals.yaml"
-    script:
-        "../scripts/intervals.py"
-
-rule sort_selected_intervals:
-    input:
-        "{project_dir}/intervals/SUMMARY/SELECTED_GENES_UNSORTED.bed"
-    output:
-        "{project_dir}/intervals/SUMMARY/SELECTED_GENES.bed"
+        out = f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.illumina.sorted.bam.out",
+        err = f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.illumina.sorted.bam.err"    
+    message: "Executing {rule}: Aligning {input.query} to {input.reference} using minimap2 and sorting the aligned reads using samtools."
+    benchmark:
+        f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.illumina.sorted.bam.benchmark"
+    threads: 
+        lambda cores: cpu_count() - 2
+    conda: "../envs/minimap2.yaml"
     shell:
-        "sort -V -k 1,1 -k 2,2n -o {output} {input} \n"
-        "rm {input}"
+        """
+        minimap2 -ax sr -t {threads} \
+            -R "@RG\\tID:{wildcards.sample}\\tSM:{wildcards.sample}" \
+            {input.reference} {input.query} | \
+        samtools sort -@ {threads} -o {output} - 1> {log.out} 2> {log.err}
+        """
 
-
-if _platform == "darwin" or config["variant_tool"] == "gatk":
-    
-    rule recalibrate_base_qualities:
-        input:
-            bam=get_recal_input(),
-            bai=get_recal_input(bai=True),
-            ref=rules.get_genome.output["fasta"],
-            fasta_dict=rules.get_genome.output["fasta_dict"],
-            known=rules.get_dbsnp.output["dbsnp"],
-            tbi=rules.get_dbsnp.output["dbsnp_tbi"],
-            regions="{project_dir}/intervals/SUMMARY/SELECTED_GENES.bed"
-        output:
-            recal_table="{project_dir}/{sample}/recal/{sample}.grp"
-        params:
-            extra=get_recal_params
-        log:
-            "{project_dir}/{sample}/logs/gatk/recal/{sample}.log"
-        wrapper:
-            "0.64.0/bio/gatk/baserecalibrator"
-
-    rule gatk_applybqsr:
-        input:
-            bam=get_recal_input(),
-            bai=get_recal_input(bai=True),
-            ref=rules.get_genome.output["fasta"],
-            fasta_dict=rules.get_genome.output["fasta_dict"],
-            recal_table="{project_dir}/{sample}/recal/{sample}.grp"
-        output:
-            bam="{project_dir}/{sample}/applybqsr/{sample}.bam"
-        log:
-            "{project_dir}/{sample}/logs/gatk/applybqsr/{sample}.log"
-        params:
-            extra="",  # optional
-            java_opts="", # optional
-        wrapper:
-            "0.64.0/bio/gatk/applybqsr"
-
-
-rule samtools_index:
+rule minimap2__map_nanopore_reads:
+    """
+    For input preprocessed reads minimap2 finds the most similar genomic region in the provided reference genome.
+    Samtools then sort aligned reads according to mapped position on reference genome.
+    :input reference: Reference genomic sequences in fasta format
+    :input query: Nanopore gzipped fastq file with reads e.g. ['path/to/{sample}.fastq.gz']
+    :output bam: Ordered mapped reads according to their location on reference genome
+    """
     input:
-        "{prefix}.bam"
+        reference = config["fasta"],
+        query = get_samples_data
     output:
-        "{prefix}.bam.bai"
-    wrapper:
-        "0.64.0/bio/samtools/index"
+        f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.nanopore.sorted.bam"
+    log:
+        out = f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.nanopore.sorted.bam.out",
+        err = f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.nanopore.sorted.bam.err"
+    message: "Executing {rule}: Aligning {input.query} to {input.reference} using minimap2 and sorting the aligned reads using samtools."
+    benchmark:
+        f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.nanopore.sorted.bam.benchmark"
+    threads: 
+        lambda cores: cpu_count() - 2
+    conda: "../envs/minimap2.yaml"
+    shell:
+        """
+        minimap2 -a -z 600,200 -ax map-ont -t {threads} \
+            -R "@RG\\tID:{wildcards.sample}\\tSM:{wildcards.sample}" \
+            {input.reference} {input.query} | \
+        samtools sort -@ {threads} -o {output} - 1> {log.out} 2> {log.err}
+        """
+
+rule samtools__bam_index:
+    """
+    Generate .bai index to .bam files to quick recover reads from genomic location of interest.
+    :input bam: Mapped reads in bam format
+    :output bai: Index of mapped reads to enable fast read retrieval from desired genomic region
+    """
+    input:
+        bam = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{{mapper}}.sorted.bam"
+    output:
+        f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{{mapper}}.sorted.bam.bai"
+    log:
+        out = f"{OUTDIR}/{{sample}}/logs/samtools_index/{{sample}}.{{mapper}}.bai.out",
+        err = f"{OUTDIR}/{{sample}}/logs/samtools_index/{{sample}}.{{mapper}}.bai.err"
+    message: "Executing {rule}: Indexing {input.bam} using samtools."
+    benchmark:
+        f"{OUTDIR}/{{sample}}/logs/samtools_index/{{sample}}.{{mapper}}.bai.benchmark"
+    threads:
+        lambda cores: cpu_count() - 2
+    conda: "../envs/samtools.yaml"
+    shell:
+        """
+        samtools index -@ {threads} {input.bam} 1> {log.out} 2> {log.err}
+        """
+
+rule pbmm2__map_pacbio_reads:
+    """
+    For input preprocessed reads pbmm2 finds the most similar genomic region in the provided reference genome.
+    :input reference: Reference genomic sequences in fasta format
+    :input query: PacBio gzipped fastq file with reads e.g. ['path/to/{sample}.fastq.gz']
+    :output bam: Ordered mapped reads according to their location on reference genome
+    """
+    input:
+        reference = config["fasta"],
+        query     = get_samples_data
+    output:
+        bam=f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.pacbio.sorted.bam",
+        index=f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.pacbio.sorted.bai"
+    params:
+        preset="CCS",
+        extra="--sort --unmapped -c 0 -y 70",
+        loglevel="INFO"
+    log:
+        out = f"{OUTDIR}/{{sample}}/logs/pbmm2/{{sample}}.pacbio.sorted.bam.out",
+        err = f"{OUTDIR}/{{sample}}/logs/pbmm2/{{sample}}.pacbio.sorted.bam.err"
+    message: "Executing {rule}: Aligning {input.query} to {input.reference} using pbmm2 and sorting the aligned reads."
+    benchmark:
+        f"{OUTDIR}/{{sample}}/logs/pbmm2/{{sample}}.pacbio.sorted.bam.benchmark"
+    threads:
+        lambda cores: cpu_count() - 2
+    conda: "../envs/pbmm2.yaml"
+    shell:
+        """
+        pbmm2 align --num-threads {threads} \
+            --preset {params.preset} \
+            --rg "@RG\\tID:{wildcards.sample}\\tSM:{wildcards.sample}" \
+            --log-level {params.loglevel} \
+            {extra} \
+            {input.reference} \
+            {input.query} \
+            {output.bam}) \
+        1> {log.out} \
+        2> {log.err}
+        """

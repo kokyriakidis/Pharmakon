@@ -162,7 +162,6 @@ def _read_action_table():
 
     with open(f"{p}/resources/pgkb/action_table.txt") as f:
         next(f)
-
         for line in f:
             fields = line.strip().split("\t")
             chemical = fields[0]

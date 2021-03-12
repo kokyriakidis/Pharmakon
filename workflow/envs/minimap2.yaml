@@ -1,6 +1,6 @@
 channels:
   - bioconda
   - conda-forge
+  - defaults
 dependencies:
-  - rust-bio-tools =0.9
-  - bcftools =1.10
+  - minimap2 ==2.17

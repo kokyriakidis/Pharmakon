@@ -1,21 +1,43 @@
-##### Project directory path #####
-##### e.g. /path/to/output/dir/directory #####
-project_dir: /Users/kokyriakidis/Desktop/test_folder
+# Step 1 
+# Define the output directory path folder
+outdir: /Users/kokyriakidis/Desktop/PGxSnake_Output1
 
-##### 
-samples: config/samples.tsv
+# Step 2 
+# Define reference build. Select one of hg38 or hg19
+build: hg38
 
-ref:
-  # ensembl species name
-  species: homo_sapiens
-  # ensembl release
-  release: 100
-  # genome build
-  build: hg38
-  output_dir: /Users/kokyriakidis/Desktop/reference
+# Step 3 
+# Set reference file paths.
+fasta: /Users/kokyriakidis/Downloads/reference/GRCh38_no_alt_analysis_set.fasta
+fai: /Users/kokyriakidis/Downloads/reference/GRCh38_no_alt_analysis_set.fasta.fai
 
-##### "gatk" or "deepvariant"
-variant_tool: "gatk"
+# Step 4 
+# Define the datatype of the sequencing data. Select one of ILLUMINA, NANOPORE or PACBIO
+datatype: ILLUMINA
+
+# Step 5 
+# Define the path to Stargazer folder
+stargazer: /Users/kokyriakidis/Downloads/Stargazer_v1.0.8
+
+# Step 6 
+# Fill in samples.tsv located inside the config folder
+#
+# If you have ILLUMINA data fill in the path to the sample's sequenging fasta1 and fasta2 paired end files inside "[]". For example:
+# samples: 
+#   SAMPLENAME1: [/path/to/sample1/fastq1, /path/to/sample1/fastq2]
+#   SAMPLENAME2: [/path/to/sample2/fastq1, /path/to/sample2/fastq2]
+#
+# If you have NANOPORE or PACBIO data fill in the path to the sample's sequenging fasta file inside "[]". For example:
+# samples: 
+#   SAMPLENAME1: [/path/to/sample1/fastq]
+#   SAMPLENAME2: [/path/to/sample2/fastq]
+
+samples:
+  KOSTAS: [/Users/kokyriakidis/Documents/GitHub/Pharmakon/data/SRR6701493_1.fastq.gz,/Users/kokyriakidis/Documents/GitHub/Pharmakon/data/SRR6701493_2.fastq.gz]
+
+
+
+
 
 css_file: workflow/resources/report/css/styles.css
 js_file: workflow/resources/report/js/scripts.js
@@ -23,43 +45,3 @@ css_heading: workflow/resources/report/css/heading.css
 css_heading: workflow/resources/report/css/body.css
 
 
-processing:
-  remove-duplicates: true
-  # Point to a bed file with, e.g., captured regions if necessary
-  #restrict-regions: ""  # "/path/to/captured_regions.bed"
-  #region-padding: ""
-
-filtering:
-  # Set to true in order to apply machine learning based recalibration of
-  # quality scores instead of hard filtering.
-  vqsr: false
-  hard:
-    # hard filtering as outlined in GATK docs
-    # (https://gatkforums.broadinstitute.org/gatk/discussion/2806/howto-apply-hard-filters-to-a-call-set)
-    snvs:
-      "QD < 2.0 || FS > 60.0 || MQ < 40.0 || MQRankSum < -12.5 || ReadPosRankSum < -8.0"
-    indels:
-      "QD < 2.0 || FS > 200.0 || ReadPosRankSum < -20.0"
-
-params:
-  deepvariant:
-    # Select model: "WGS" or "WES"
-    model: "WES"
-    extra: ""
-  gatk:
-    HaplotypeCaller: ""
-    BaseRecalibrator: ""
-    GenotypeGVCFs: ""
-    VariantRecalibrator: ""
-  picard:
-    MarkDuplicates: "REMOVE_DUPLICATES=true"
-  stargazer:
-    target_genes: "ALL"
-    control_gene: "vdr"
-  vep:
-    plugins:
-      # Add any plugin from https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html
-      # Plugin args can be passed as well, e.g. "LoFtool,path/to/custom/scores.txt".
-      - LoFtool
-    # extra command line arguments (e.g. --sift, see docs)
-    extra: ""

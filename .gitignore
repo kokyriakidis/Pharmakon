@@ -1,6 +1,7 @@
 .snakemake*
+.vscode*
+data/*
 !Snakefile
 reference/*
-data/*
 logs/*
 workflow/scripts/recommendations/__pycache__

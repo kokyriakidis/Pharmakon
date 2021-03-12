@@ -10,10 +10,11 @@ container: "continuumio/miniconda3:4.8.2"
 
 ###### Config file #####
 configfile: "config/config.yaml"
+
 #validate(config, schema="../schemas/config.schema.yaml")
 
 ##### Sample sheet #####
-samples = pd.read_table(config["samples"]).set_index("sample_name", drop=False)
+samples = pd.read_table(config["samples"]).set_index("samples", drop=False)
 #validate(samples, schema="../schemas/samples.schema.yaml")
 
 ##### Wildcard constraints #####
