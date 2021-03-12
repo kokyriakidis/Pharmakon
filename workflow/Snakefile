@@ -11,15 +11,32 @@ OUTDIR = config["outdir"]
 
 include: "rules/mapping.smk"
 include: "rules/calling.smk"
-#include: "rules/qc.smk"
+include: "rules/qc.smk"
 #include: "rules/stargazer.smk"
 #include: "rules/report.smk"
 
 # Target rules #
 
-if config["datatype"] == "ILLUMINA":
+#if config["datatype"] == "ILLUMINA":
+#
+#    rule all:
+#        input:        
+#            expand(f"{OUTDIR}/{{sample}}/qc/fastqc/{{sample}}_fastqc.zip", sample=config["samples"]),
+#            expand(f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{{mapper}}.{{provider}}.bam.stats.txt", sample=config["samples"], mapper="pbmm2", provider="pacbio"),
+#            expand(f"{OUTDIR}/{{sample}}/qc/multiqc/multiqc.{{mapper}}.{{provider}}.{{caller}}.html", sample=config["samples"], mapper="pbmm2", provider="pacbio", caller="pepper")
+
+
+
+if config["datatype"] == "NANOPORE":
 
     rule all:
         input:
-            expand(f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.illumina.sorted.bam",
-                sample=config["samples"])
+            expand(f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.bam.nanoplot.txt", sample=config["samples"])
+
+if config["datatype"] == "PACBIO":
+
+    rule all:
+        input:
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.mosdepth.inferred_sex.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.mosdepth.M2_ratio.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.gc_coverage.summary.txt", sample=config["samples"])

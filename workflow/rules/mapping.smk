@@ -27,7 +27,6 @@ rule minimap2__map_illumina_reads:
     log:
         out = f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.illumina.sorted.bam.out",
         err = f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.illumina.sorted.bam.err"    
-    message: "Executing {rule}: Aligning {input.query} to {input.reference} using minimap2 and sorting the aligned reads using samtools."
     benchmark:
         f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.illumina.sorted.bam.benchmark"
     threads: 
@@ -57,7 +56,6 @@ rule minimap2__map_nanopore_reads:
     log:
         out = f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.nanopore.sorted.bam.out",
         err = f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.nanopore.sorted.bam.err"
-    message: "Executing {rule}: Aligning {input.query} to {input.reference} using minimap2 and sorting the aligned reads using samtools."
     benchmark:
         f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.nanopore.sorted.bam.benchmark"
     threads: 
@@ -65,7 +63,7 @@ rule minimap2__map_nanopore_reads:
     conda: "../envs/minimap2.yaml"
     shell:
         """
-        minimap2 -a -z 600,200 -ax map-ont -t {threads} \
+        minimap2 -a -z 600,200 -ax map-ont --MD -t {threads} \
             -R "@RG\\tID:{wildcards.sample}\\tSM:{wildcards.sample}" \
             {input.reference} {input.query} | \
         samtools sort -@ {threads} -o {output} - 1> {log.out} 2> {log.err}
@@ -78,15 +76,14 @@ rule samtools__bam_index:
     :output bai: Index of mapped reads to enable fast read retrieval from desired genomic region
     """
     input:
-        bam = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{{mapper}}.sorted.bam"
+        bam = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{{provider}}.sorted.bam"
     output:
-        f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{{mapper}}.sorted.bam.bai"
+        f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{{provider}}.sorted.bam.bai"
     log:
-        out = f"{OUTDIR}/{{sample}}/logs/samtools_index/{{sample}}.{{mapper}}.bai.out",
-        err = f"{OUTDIR}/{{sample}}/logs/samtools_index/{{sample}}.{{mapper}}.bai.err"
-    message: "Executing {rule}: Indexing {input.bam} using samtools."
+        out = f"{OUTDIR}/{{sample}}/logs/samtools_index/{{sample}}.{{provider}}.bai.out",
+        err = f"{OUTDIR}/{{sample}}/logs/samtools_index/{{sample}}.{{provider}}.bai.err"
     benchmark:
-        f"{OUTDIR}/{{sample}}/logs/samtools_index/{{sample}}.{{mapper}}.bai.benchmark"
+        f"{OUTDIR}/{{sample}}/logs/samtools_index/{{sample}}.{{provider}}.bai.benchmark"
     threads:
         lambda cores: cpu_count() - 2
     conda: "../envs/samtools.yaml"
@@ -115,7 +112,6 @@ rule pbmm2__map_pacbio_reads:
     log:
         out = f"{OUTDIR}/{{sample}}/logs/pbmm2/{{sample}}.pacbio.sorted.bam.out",
         err = f"{OUTDIR}/{{sample}}/logs/pbmm2/{{sample}}.pacbio.sorted.bam.err"
-    message: "Executing {rule}: Aligning {input.query} to {input.reference} using pbmm2 and sorting the aligned reads."
     benchmark:
         f"{OUTDIR}/{{sample}}/logs/pbmm2/{{sample}}.pacbio.sorted.bam.benchmark"
     threads:

@@ -13,7 +13,7 @@ fai: /Users/kokyriakidis/Downloads/reference/GRCh38_no_alt_analysis_set.fasta.fa
 
 # Step 4 
 # Define the datatype of the sequencing data. Select one of ILLUMINA, NANOPORE or PACBIO
-datatype: ILLUMINA
+datatype: NANOPORE
 
 # Step 5 
 # Define the path to Stargazer folder
@@ -33,7 +33,7 @@ stargazer: /Users/kokyriakidis/Downloads/Stargazer_v1.0.8
 #   SAMPLENAME2: [/path/to/sample2/fastq]
 
 samples:
-  KOSTAS: [/Users/kokyriakidis/Documents/GitHub/Pharmakon/data/SRR6701493_1.fastq.gz,/Users/kokyriakidis/Documents/GitHub/Pharmakon/data/SRR6701493_2.fastq.gz]
+  INTEGRATION: [/Users/kokyriakidis/Documents/GitHub/Pharmakon/data/SRR6701493_1.fastq.gz]
 
 
 
