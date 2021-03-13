@@ -1,0 +1,19 @@
+[E::hts_open_format] Failed to open file "/home/kokyriakidis/Desktop/PGxSnake_Output/HG003/minimap2/HG003.illumina.sorted.bam" : No such file or directory
+Traceback (most recent call last):
+  File "/tmp/Bazel.runfiles_o4j9ppgj/runfiles/com_google_deepvariant/deepvariant/make_examples.py", line 2246, in <module>
+    app.run(main)
+  File "/tmp/Bazel.runfiles_o4j9ppgj/runfiles/absl_py/absl/app.py", line 299, in run
+    _run_main(main, args)
+  File "/tmp/Bazel.runfiles_o4j9ppgj/runfiles/absl_py/absl/app.py", line 250, in _run_main
+    sys.exit(main(argv))
+  File "/tmp/Bazel.runfiles_o4j9ppgj/runfiles/com_google_deepvariant/deepvariant/make_examples.py", line 2173, in main
+    options = default_options(add_flags=True, flags_obj=FLAGS)
+  File "/tmp/Bazel.runfiles_o4j9ppgj/runfiles/com_google_deepvariant/deepvariant/make_examples.py", line 456, in default_options
+    with sam.SamReader(flags_obj.reads.split(',')[0]) as sam_reader:
+  File "/tmp/Bazel.runfiles_o4j9ppgj/runfiles/com_google_deepvariant/third_party/nucleus/io/genomics_reader.py", line 221, in __init__
+    self._reader = self._native_reader(input_path, **kwargs)
+  File "/tmp/Bazel.runfiles_o4j9ppgj/runfiles/com_google_deepvariant/third_party/nucleus/io/sam.py", line 255, in _native_reader
+    return NativeSamReader(input_path, **kwargs)
+  File "/tmp/Bazel.runfiles_o4j9ppgj/runfiles/com_google_deepvariant/third_party/nucleus/io/sam.py", line 232, in __init__
+    use_original_base_quality_scores=use_original_base_quality_scores)
+ValueError: Not found: Could not open /home/kokyriakidis/Desktop/PGxSnake_Output/HG003/minimap2/HG003.illumina.sorted.bam

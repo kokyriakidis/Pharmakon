@@ -2,8 +2,10 @@ import os
 import gzip
 import sys
 
+shell.prefix("set -o pipefail; umask 002; ")
 configfile: "config/config.yaml"
 
+singularity: "docker://continuumio/miniconda3:4.5.11"
 container: "continuumio/miniconda3:4.8.2"
 
 
@@ -63,10 +65,11 @@ if config["datatype"] == "PACBIO":
 
     rule all:
         input:
-            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.mosdepth.inferred_sex.txt", sample=config["samples"]),
-            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.mosdepth.M2_ratio.txt", sample=config["samples"]),
-            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.gc_coverage.summary.txt", sample=config["samples"]),
-            expand(f"{OUTDIR}/{{sample}}/stargazer/gdf/{{target_gene}}/{{sample}}.{{target_gene}}.gdf", sample=config["samples"], target_gene=TARGET_GENES)
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.pacbio.pepper.vcf.gz", sample=config["samples"])
+            #expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.mosdepth.inferred_sex.txt", sample=config["samples"]),
+            #expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.mosdepth.M2_ratio.txt", sample=config["samples"]),
+            #expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.gc_coverage.summary.txt", sample=config["samples"]),
+            #expand(f"{OUTDIR}/{{sample}}/stargazer/gdf/{{target_gene}}/{{sample}}.{{target_gene}}.gdf", sample=config["samples"], target_gene=TARGET_GENES)
 
 if config["datatype"] == "ILLUMINA":
     
@@ -76,7 +79,7 @@ if config["datatype"] == "ILLUMINA":
     
     rule all:
         input:
-            expand(f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.bam.NanoPlot-report.html", sample=config["samples"])
+            expand(f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.illumina.deepvariant.vcf.gz", sample=config["samples"])
 
 
 

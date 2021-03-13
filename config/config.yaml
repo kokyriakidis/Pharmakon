@@ -1,6 +1,6 @@
 # Step 1 
 # Define the output directory path folder
-outdir: /Users/kokyriakidis/Desktop/PGxSnake_Output1
+outdir: /home/kokyriakidis/Desktop/PGxSnake_Output
 
 # Step 2 
 # Define reference build. Select one of hg38 or hg19
@@ -8,8 +8,8 @@ build: hg38
 
 # Step 3 
 # Set reference file paths.
-fasta: /Users/kokyriakidis/Downloads/reference/GRCh38_no_alt_analysis_set.fasta
-fai: /Users/kokyriakidis/Downloads/reference/GRCh38_no_alt_analysis_set.fasta.fai
+fasta: /home/kokyriakidis/Desktop/PGxSnake_Output/reference/GRCh38_no_alt_analysis_set.fasta
+fai: /home/kokyriakidis/Desktop/PGxSnake_Output/reference/GRCh38_no_alt_analysis_set.fasta.fai
 
 # Step 4 
 # Define the datatype of the sequencing data. Select one of ILLUMINA, NANOPORE or PACBIO
@@ -17,7 +17,7 @@ datatype: PACBIO
 
 # Step 5 
 # Define the path to Stargazer folder
-stargazer_path: /Users/kokyriakidis/Downloads/Stargazer_v1.0.8
+stargazer_path: /home/kokyriakidis/Downloads/Stargazer_v1.0.8/Stargazer_v1.0.8
 
 # Step 6 
 # Fill in samples.tsv located inside the config folder
@@ -33,7 +33,7 @@ stargazer_path: /Users/kokyriakidis/Downloads/Stargazer_v1.0.8
 #   SAMPLENAME2: [/path/to/sample2/fastq]
 
 samples:
-  INTEGRATION: [/Users/kokyriakidis/Documents/GitHub/Pharmakon/data/SRR6701493_1.fastq.gz]
+  HG003: [HG003_35x_PacBio_14kb-15kb.fastq.gz]
 
 
 
