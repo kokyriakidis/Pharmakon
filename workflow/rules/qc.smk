@@ -31,16 +31,16 @@ rule samtools__bam_stats:
     :output stats: Statistics from BAM files outputted in a text format
     """
     input:
-        bam = f"{OUTDIR}/{{sample}}/{{mapper}}/{{sample}}.{{provider}}.sorted.bam",
-        bai = f"{OUTDIR}/{{sample}}/{{mapper}}/{{sample}}.{{provider}}.sorted.bam.bai"
+        bam = f"{OUTDIR}/{{sample}}/{mapper}/{{sample}}.{provider}.sorted.bam",
+        bai = f"{OUTDIR}/{{sample}}/{mapper}/{{sample}}.{provider}.sorted.bam.bai"
     output:
-        stats     = f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{{mapper}}.{{provider}}.bam.stats.txt",
-        idxstats  = f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{{mapper}}.{{provider}}.bam.idxstats.txt",
-        flagstats = f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{{mapper}}.{{provider}}.bam.flagstats.txt"
+        stats     = f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{mapper}.{provider}.bam.stats.txt",
+        idxstats  = f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{mapper}.{provider}.bam.idxstats.txt",
+        flagstats = f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{mapper}.{provider}.bam.flagstats.txt"
     log:
-        f"{OUTDIR}/{{sample}}/logs/samtools/{{sample}}.{{mapper}}.{{provider}}.bam.stats.log"
+        f"{OUTDIR}/{{sample}}/logs/samtools/{{sample}}.{mapper}.{provider}.bam.stats.log"
     benchmark:
-        f"{OUTDIR}/{{sample}}/logs/samtools/{{sample}}.{{mapper}}.{{provider}}.bam.stats.benchmark"
+        f"{OUTDIR}/{{sample}}/logs/samtools/{{sample}}.{mapper}.{provider}.bam.stats.benchmark"
     conda:
         "../envs/samtools.yaml"
     shell:
@@ -57,13 +57,13 @@ rule bcftools_stats:
     :output stats: Statistics from VCF files outputted in a text format
     """
     input: 
-        vcf = f"{OUTDIR}/{{sample}}/{{caller}}/{{sample}}.{{provider}}.{{caller}}.vcf.gz"
+        vcf = f"{OUTDIR}/{{sample}}/{{caller}}/{{sample}}.{provider}.{caller}.vcf.gz"
     output: 
-        stats = f"{OUTDIR}/{{sample}}/qc/bcftools/{{sample}}.{{provider}}.{{caller}}.vcf.stats.txt"
+        stats = f"{OUTDIR}/{{sample}}/qc/bcftools/{{sample}}.{provider}.{caller}.vcf.stats.txt"
     log: 
-        f"{OUTDIR}/{{sample}}/logs/bcftools/{{sample}}.{{provider}}.{{caller}}.vcf.stats.log"
+        f"{OUTDIR}/{{sample}}/logs/bcftools/{{sample}}.{provider}.{caller}.vcf.stats.log"
     benchmark: 
-        f"{OUTDIR}/{{sample}}/logs/bcftools/{{sample}}.{{provider}}.{{caller}}.vcf.stats.benchmark"
+        f"{OUTDIR}/{{sample}}/logs/bcftools/{{sample}}.{provider}.{caller}.vcf.stats.benchmark"
     params: 
         fasta   = f"--fasta-ref {config['fasta']}", 
         filters = "--apply-filters PASS", 
@@ -144,9 +144,9 @@ rule mosdepth__calculate_coverage:
     benchmark: 
         f"{OUTDIR}/{{sample}}/logs/mosdepth/{{sample}}.{config['build']}.mosdepth.benchmark"
     params:
-        by = "500",
+        by     = "500",
         prefix = f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}",
-        extra = "--no-per-base --use-median"
+        extra  = "--no-per-base --use-median"
     threads: 4
     conda: 
         "../envs/mosdepth.yaml"
@@ -203,7 +203,7 @@ rule coverage__calculate_gc_coverage:
     """
     input:
         mosdepth_regions = f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.regions.bed.gz",
-        ref = config["fasta"]
+        ref              = config["fasta"]
     output: 
         f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.gc_coverage.summary.txt"
     log: 
@@ -228,20 +228,22 @@ rule nanoplot__bam_statistics:
     """
     Calculate various statistics from a long read sequencing dataset in BAM format.
     Creates a statistical summary using NanoStats.
-    Creates various plots with nanoplotter.
+    Creates various plots with NanoPlot.
     Creates a html report based on the previously created plots.
     """
     input:
-        bam           = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.nanopore.sorted.bam",
-        bai           = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.nanopore.sorted.bam.bai"
+        bam = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.nanopore.sorted.bam",
+        bai = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.nanopore.sorted.bam.bai"
     output:
         f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.bam.NanoStats.txt",
         f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.bam.NanoPlot-report.html"
     params:
         output_dir    = f"{OUTDIR}/{{sample}}/qc/nanoplot",
-        output_prefix = f"{{sample}}.bam."
+        output_prefix = f"{{sample}}.bam.",
+        log_outdir    = f"{OUTDIR}/{{sample}}/logs/nanoplot/"
     log:
-        f"{OUTDIR}/{{sample}}/logs/nanoplot/{{sample}}.bam.nanoplot.log"
+        err = f"{OUTDIR}/{{sample}}/logs/nanoplot/{{sample}}.bam.nanoplot.err",
+        out = f"{OUTDIR}/{{sample}}/logs/nanoplot/{{sample}}.bam.nanoplot.log"
     benchmark:
         f"{OUTDIR}/{{sample}}/logs/nanoplot/{{sample}}.bam.nanoplot.benchmark"
     threads:
@@ -250,5 +252,6 @@ rule nanoplot__bam_statistics:
         "../envs/nanoplot.yaml"
     shell:
         """
-        (NanoPlot --bam {input.bam} --N50 --outdir {params.output_dir} --prefix {params.output_prefix} --threads {threads}) > {log} 2>&1
+        NanoPlot --bam {input.bam} --outdir {params.output_dir} --prefix {params.output_prefix} --threads {threads} 2> {log.err}
+        mv {params.output_dir}/*.log {params.log_outdir}
         """

@@ -10,20 +10,20 @@ rule deepvariant__illumina_germline_variants:
         fasta = config["fasta"],
         fai   = config["fai"]
     output:
-        vcf        = f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.deepvariant.vcf.gz",
-        vcf_index  = f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.deepvariant.vcf.gz.tbi",
-        gvcf       = f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.deepvariant.g.vcf.gz",
-        gvcf_index = f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.deepvariant.g.vcf.gz.tbi",
-        report     = f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.deepvariant.visual_report.html"
+        vcf        = f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.illumina.deepvariant.vcf.gz",
+        vcf_index  = f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.illumina.deepvariant.vcf.gz.tbi",
+        gvcf       = f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.illumina.deepvariant.g.vcf.gz",
+        gvcf_index = f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.illumina.deepvariant.g.vcf.gz.tbi",
+        report     = f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.illumina.deepvariant.visual_report.html"
     params:
         model = "WGS"
     threads:
         lambda cores: cpu_count() - 2
     log:
-        out = f"{OUTDIR}/{{sample}}/logs/deepvariant/{{sample}}.deepvariant.vcf.out",
-        err = f"{OUTDIR}/{{sample}}/logs/deepvariant/{{sample}}.deepvariant.vcf.err"
+        out = f"{OUTDIR}/{{sample}}/logs/deepvariant/{{sample}}.illumina.deepvariant.vcf.out",
+        err = f"{OUTDIR}/{{sample}}/logs/deepvariant/{{sample}}.illumina.deepvariant.vcf.err"
     benchmark:
-        f"{OUTDIR}/{{sample}}/logs/deepvariant/{{sample}}.deepvariant.vcf.benchmark"
+        f"{OUTDIR}/{{sample}}/logs/deepvariant/{{sample}}.illumina.deepvariant.vcf.benchmark"
     singularity:
         "docker://google/deepvariant:1.1.0"
     shell:
@@ -51,7 +51,7 @@ rule pepper__pacbio_germline_variants:
         fai   = config["fai"]
     output:
         output_dir    = f"{OUTDIR}/{{sample}}/pepper",
-        output_prefix = f"{{sample}}.pepper",
+        output_prefix = f"{{sample}}.pacbio.pepper",
         vcf           = f"{OUTDIR}/{{sample}}/pepper/{{sample}}.pacbio.pepper.vcf.gz",
         vcf_index     = f"{OUTDIR}/{{sample}}/pepper/{{sample}}.pacbio.pepper.vcf.gz.tbi",
         gvcf          = f"{OUTDIR}/{{sample}}/pepper/{{sample}}.pacbio.pepper.g.vcf.gz",
