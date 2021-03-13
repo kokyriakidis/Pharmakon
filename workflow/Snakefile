@@ -24,7 +24,10 @@ TARGET_GENES = ['abcb1', 'cacna1s', 'cftr', 'cyp1a1', 'cyp1a2',
 
 CONTROL_GENE = 'vdr'
 
-
+css_file    = "workflow/resources/report/css/styles.css"
+js_file     = "workflow/resources/report/js/scripts.js"
+css_heading = "workflow/resources/report/css/heading.css"
+css_heading = "workflow/resources/report/css/body.css"
 
 include: "rules/mapping.smk"
 include: "rules/calling.smk"
@@ -32,7 +35,7 @@ include: "rules/qc.smk"
 include: "rules/stargazer.smk"
 #include: "rules/report.smk"
 
-# Target rules #
+
 
 #if config["datatype"] == "ILLUMINA":
 #
@@ -44,7 +47,10 @@ include: "rules/stargazer.smk"
 
 
 
+# Target rules #
+
 if config["datatype"] == "NANOPORE":
+    
     provider = "nanopore"
     mapper = "minimap2"
     caller = "pepper"
@@ -54,6 +60,7 @@ if config["datatype"] == "NANOPORE":
             expand(f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.bam.NanoPlot-report.html", sample=config["samples"])
 
 if config["datatype"] == "PACBIO":
+    
     provider = "pacbio"
     mapper = "pbmm2"
     caller = "pepper"
@@ -66,6 +73,7 @@ if config["datatype"] == "PACBIO":
             expand(f"{OUTDIR}/{{sample}}/stargazer/gdf/{{target_gene}}/{{sample}}.{{target_gene}}.gdf", sample=config["samples"], target_gene=TARGET_GENES)
 
 if config["datatype"] == "ILLUMINA":
+    
     provider = "illumina"
     mapper = "minimap2"
     caller = "deepvariant"

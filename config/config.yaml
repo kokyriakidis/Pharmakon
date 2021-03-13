@@ -39,9 +39,10 @@ samples:
 
 
 
-css_file: workflow/resources/report/css/styles.css
-js_file: workflow/resources/report/js/scripts.js
-css_heading: workflow/resources/report/css/heading.css
-css_heading: workflow/resources/report/css/body.css
 
 
+
+
+
+
+  

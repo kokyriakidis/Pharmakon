@@ -1,11 +1,11 @@
 channels:
+  - sbslee
   - conda-forge
   - bioconda
 dependencies:
   - python =3.6
-  - pandas =0.23
+  - pandas =1.2.3
   - conda-forge::bootstrap
   - conda-forge::xhtml2pdf
   - pip
-  - pip:
-    - pypgx ==0.1.28
+  - pypgx ==0.2.0
