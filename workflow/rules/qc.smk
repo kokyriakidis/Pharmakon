@@ -239,7 +239,7 @@ rule nanoplot__bam_statistics:
         f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.bam.NanoPlot-report.html"
     params:
         output_dir    = f"{OUTDIR}/{{sample}}/qc/nanoplot",
-        output_prefix = f"{{sample}}.bam"
+        output_prefix = f"{{sample}}.bam."
     log:
         f"{OUTDIR}/{{sample}}/logs/nanoplot/{{sample}}.bam.nanoplot.log"
     benchmark:
