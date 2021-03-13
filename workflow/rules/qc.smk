@@ -224,58 +224,22 @@ rule coverage__calculate_gc_coverage:
 
 ## NANOPORE ##
 
-rule nanostat__fastq_statistics:
-    """
-    Calculate various statistics from a long read sequencing dataset in FASTQ format
-    """
-    input:
-        fastq = get_samples_data
-    output:
-        f"{OUTDIR}/{{sample}}/qc/nanostat/{{sample}}.fastq.nanostat.txt"
-    log:
-        f"{OUTDIR}/{{sample}}/logs/nanostat/{{sample}}.fastq.nanostat.log"
-    benchmark:
-        f"{OUTDIR}/{{sample}}/logs/nanostat/{{sample}}.fastq.nanostat.benchmark"
-    threads:
-        lambda cores: cpu_count() - 2
-    conda: 
-        "../envs/nanostat.yaml"
-    shell:
-        """
-        (NanoStat --fastq {input.fastq} --name {output} --threads {threads}) > {log} 2>&1
-        """
-
-rule nanostat__bam_statistics:
-    """
-    Calculate various statistics from a long read sequencing dataset in BAM format
-    """
-    input:
-        bam = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.nanopore.sorted.bam",
-        bai = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.nanopore.sorted.bam.bai"
-    output:
-        f"{OUTDIR}/{{sample}}/qc/nanostat/{{sample}}.bam.nanostat.txt"
-    log:
-        f"{OUTDIR}/{{sample}}/logs/nanostat/{{sample}}.bam.nanostat.log"
-    benchmark:
-        f"{OUTDIR}/{{sample}}/logs/nanostat/{{sample}}.bam.nanostat.benchmark"
-    threads:
-        lambda cores: cpu_count() - 2
-    conda: 
-        "../envs/nanostat.yaml"
-    shell:
-        """
-        (NanoStat --bam {input.bam} --name {output} --threads {threads}) > {log} 2>&1
-        """
-
 rule nanoplot__bam_statistics:
     """
-    Calculate various statistics from a long read sequencing dataset in BAM format
+    Calculate various statistics from a long read sequencing dataset in BAM format.
+    Creates a statistical summary using NanoStats.
+    Creates various plots with nanoplotter.
+    Creates a html report based on the previously created plots.
     """
     input:
-        bam = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.nanopore.sorted.bam",
-        bai = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.nanopore.sorted.bam.bai"
+        bam           = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.nanopore.sorted.bam",
+        bai           = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.nanopore.sorted.bam.bai"
     output:
-        f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.bam.nanoplot.txt"
+        f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.bam.NanoStats.txt",
+        f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.bam.NanoPlot-report.html"
+    params:
+        output_dir    = f"{OUTDIR}/{{sample}}/qc/nanoplot",
+        output_prefix = f"{{sample}}.bam"
     log:
         f"{OUTDIR}/{{sample}}/logs/nanoplot/{{sample}}.bam.nanoplot.log"
     benchmark:
@@ -286,5 +250,5 @@ rule nanoplot__bam_statistics:
         "../envs/nanoplot.yaml"
     shell:
         """
-        (NanoPlot --bam {input.bam} --N50 --outdir f"{OUTDIR}/{{sample}}/qc/nanoplot" --prefix f"{{sample}}.bam.nanoplot" --threads {threads}) > {log} 2>&1
+        (NanoPlot --bam {input.bam} --N50 --outdir {params.output_dir} --prefix {params.output_prefix} --threads {threads}) > {log} 2>&1
         """

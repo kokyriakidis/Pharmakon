@@ -31,7 +31,7 @@ if config["datatype"] == "NANOPORE":
 
     rule all:
         input:
-            expand(f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.bam.nanoplot.txt", sample=config["samples"])
+            expand(f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.bam.NanoPlot-report.html", sample=config["samples"])
 
 if config["datatype"] == "PACBIO":
 
