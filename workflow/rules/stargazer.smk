@@ -9,7 +9,7 @@ rule gdf__calculate_read_depth:
     :output gdf: Path to the output GDF file
     """
     input:
-        bam = f"{OUTDIR}/{{sample}}/{mapper}/{{sample}}.{provider}.sorted.bam",
+        bam = f"{OUTDIR}/{{sample}}/{MAPPER}/{{sample}}.{BUILD}.{PROVIDER}.sorted.bam",
     output: 
         gdf = f"{OUTDIR}/{{sample}}/stargazer/gdf/{{target_gene}}/{{sample}}.{{target_gene}}.gdf"
     params:
@@ -17,9 +17,9 @@ rule gdf__calculate_read_depth:
         control_gene = f"{CONTROL_GENE}",
         genome_build = config["build"]
     log: 
-        f"{OUTDIR}/{{sample}}/logs/stargazer/gdf/{{target_gene}}/{{sample}}.{{target_gene}}.gdf.log"
+        f"{OUTDIR}/{{sample}}/stargazer/gdf/{{target_gene}}/logs/{{sample}}.{{target_gene}}.gdf.log"
     benchmark: 
-        f"{OUTDIR}/{{sample}}/logs/stargazer/gdf/{{target_gene}}/{{sample}}.{{target_gene}}.gdf.benchmark"
+        f"{OUTDIR}/{{sample}}/stargazer/gdf/{{target_gene}}/logs/{{sample}}.{{target_gene}}.gdf.benchmark"
     conda: 
         "../envs/pypgx.yaml"
     shell: 
@@ -42,10 +42,10 @@ rule stargazer__call_star_alleles:
     :output genotype: Star alleles (haplotypes) in a text format
     """
     input:
-        vcf            = f"{OUTDIR}/{{sample}}/{caller}/{{sample}}.{caller}.vcf.gz",
-        gdf            = f"{OUTDIR}/{{sample}}/stargazer/gdf/{{target_gene}}/{{sample}}.{{target_gene}}.gdf"
+        vcf = f"{OUTDIR}/{{sample}}/{CALLER}/{{sample}}.{BUILD}.{PROVIDER}.{VARIANTCALL}.vcf.gz",
+        gdf = f"{OUTDIR}/{{sample}}/stargazer/gdf/{{target_gene}}/{{sample}}.{{target_gene}}.gdf"
     output:
-        genotype      = f"{OUTDIR}/{{sample}}/stargazer/genotype/{{target_gene}}/{{sample}}.{{target_gene}}.genotype.txt"
+        genotype = f"{OUTDIR}/{{sample}}/stargazer/genotype/{{target_gene}}/{{sample}}.{{target_gene}}.genotype.txt"
     params:
         output_dir     = f"{OUTDIR}/{{sample}}/stargazer/genotype/{{target_gene}}",
         output_prefix  = f"{{sample}}.{{target_gene}}.genotype",
@@ -54,21 +54,20 @@ rule stargazer__call_star_alleles:
         control_gene   = f"{CONTROL_GENE}",
         datatype       = "wgs"
     log: 
-        f"{OUTDIR}/{{sample}}/logs/stargazer/genotype/{{target_gene}}/{{sample}}.{{target_gene}}.genotype.log"
+        f"{OUTDIR}/{{sample}}/stargazer/genotype/{{target_gene}}/logs/{{sample}}.{{target_gene}}.genotype.log"
     benchmark: 
-        f"{OUTDIR}/{{sample}}/logs/stargazer/genotype/{{target_gene}}/{{sample}}.{{target_gene}}.genotype.benchmark"
+        f"{OUTDIR}/{{sample}}/stargazer/genotype/{{target_gene}}/logs/{{sample}}.{{target_gene}}.genotype.benchmark"
     conda:
         "../envs/stargazer.yaml"
     shell: 
         """
-        (python {input.stargazer_path}/stargazer.py genotype \
+        (python {params.stargazer_path}/stargazer.py genotype \
         --output_dir {params.output_dir} \
         --output_prefix {params.output_prefix} \
         -d {params.datatype} \
         -t {params.target_gene} \
         --vcf {input.vcf} \
         -c {params.control_gene} \
-        --detail \
         --gdf {input.gdf}) > {log} 2>&1
         """
 

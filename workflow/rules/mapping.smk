@@ -23,21 +23,20 @@ rule minimap2__map_illumina_reads:
         reference = config["fasta"],
         query = get_samples_data
     output:
-        f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.illumina.sorted.bam"
+        f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{BUILD}.illumina.sorted.bam"
     log:
-        out = f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.illumina.sorted.bam.out",
-        err = f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.illumina.sorted.bam.err"    
+        f"{OUTDIR}/{{sample}}/minimap2/logs/{{sample}}.{BUILD}.illumina.sorted.bam.log"   
     benchmark:
-        f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.illumina.sorted.bam.benchmark"
+        f"{OUTDIR}/{{sample}}/minimap2/logs/{{sample}}.{BUILD}.illumina.sorted.bam.benchmark"
     threads: 
         lambda cores: cpu_count() - 2
     conda: "../envs/minimap2.yaml"
     shell:
         """
-        minimap2 -ax sr -t {threads} \
+        (minimap2 -ax sr -t {threads} \
             -R "@RG\\tID:{wildcards.sample}\\tSM:{wildcards.sample}" \
             {input.reference} {input.query} | \
-        samtools sort -@ {threads} -o {output} - 1> {log.out} 2> {log.err}
+        samtools sort -@ {threads} -o {output} -) > {log} 2>&1
         """
 
 rule minimap2__map_nanopore_reads:
@@ -52,21 +51,20 @@ rule minimap2__map_nanopore_reads:
         reference = config["fasta"],
         query = get_samples_data
     output:
-        f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.nanopore.sorted.bam"
+        f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{BUILD}.nanopore.sorted.bam"
     log:
-        out = f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.nanopore.sorted.bam.out",
-        err = f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.nanopore.sorted.bam.err"
+        f"{OUTDIR}/{{sample}}/minimap2/logs/{{sample}}.{BUILD}.nanopore.sorted.bam.log"
     benchmark:
-        f"{OUTDIR}/{{sample}}/logs/minimap2/{{sample}}.nanopore.sorted.bam.benchmark"
+        f"{OUTDIR}/{{sample}}/minimap2/logs/{{sample}}.{BUILD}.nanopore.sorted.bam.benchmark"
     threads: 
         lambda cores: cpu_count() - 2
     conda: "../envs/minimap2.yaml"
     shell:
         """
-        minimap2 -a -z 600,200 -ax map-ont --MD -t {threads} \
+        (minimap2 -a -z 600,200 -ax map-ont --MD -t {threads} \
             -R "@RG\\tID:{wildcards.sample}\\tSM:{wildcards.sample}" \
             {input.reference} {input.query} | \
-        samtools sort -@ {threads} -o {output} - 1> {log.out} 2> {log.err}
+        samtools sort -@ {threads} -o {output} -) > {log} 2>&1
         """
 
 rule samtools__bam_index:
@@ -76,20 +74,19 @@ rule samtools__bam_index:
     :output bai: Index of mapped reads to enable fast read retrieval from desired genomic region
     """
     input:
-        bam = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{{provider}}.sorted.bam"
+        bam = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{BUILD}.{{provider}}.sorted.bam"
     output:
-        f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{{provider}}.sorted.bam.bai"
+        f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{BUILD}.{{provider}}.sorted.bam.bai"
     log:
-        out = f"{OUTDIR}/{{sample}}/logs/samtools_index/{{sample}}.{{provider}}.bai.out",
-        err = f"{OUTDIR}/{{sample}}/logs/samtools_index/{{sample}}.{{provider}}.bai.err"
+        f"{OUTDIR}/{{sample}}/samtools_index/logs/{{sample}}.{BUILD}.{{provider}}.bai.log"
     benchmark:
-        f"{OUTDIR}/{{sample}}/logs/samtools_index/{{sample}}.{{provider}}.bai.benchmark"
+        f"{OUTDIR}/{{sample}}/samtools_index/logs/{{sample}}.{BUILD}.{{provider}}.bai.benchmark"
     threads:
         lambda cores: cpu_count() - 2
     conda: "../envs/samtools.yaml"
     shell:
         """
-        samtools index -@ {threads} {input.bam} 1> {log.out} 2> {log.err}
+        (samtools index -@ {threads} {input.bam}) > {log} 2>&1
         """
 
 rule pbmm2__map_pacbio_reads:
@@ -103,30 +100,27 @@ rule pbmm2__map_pacbio_reads:
         reference = config["fasta"],
         query     = get_samples_data
     output:
-        bam=f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.pacbio.sorted.bam",
-        index=f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.pacbio.sorted.bai"
+        bam=f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.{BUILD}.pacbio.sorted.bam",
+        index=f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.{BUILD}.pacbio.sorted.bai"
     params:
         preset="CCS",
         extra="--sort --unmapped -c 0 -y 70",
         loglevel="INFO"
     log:
-        out = f"{OUTDIR}/{{sample}}/logs/pbmm2/{{sample}}.pacbio.sorted.bam.out",
-        err = f"{OUTDIR}/{{sample}}/logs/pbmm2/{{sample}}.pacbio.sorted.bam.err"
+        f"{OUTDIR}/{{sample}}/pbmm2/logs/{{sample}}.{BUILD}.pacbio.sorted.bam.log"
     benchmark:
-        f"{OUTDIR}/{{sample}}/logs/pbmm2/{{sample}}.pacbio.sorted.bam.benchmark"
+        f"{OUTDIR}/{{sample}}/pbmm2/logs/{{sample}}.{BUILD}.pacbio.sorted.bam.benchmark"
     threads:
         lambda cores: cpu_count() - 2
     conda: "../envs/pbmm2.yaml"
     shell:
         """
-        pbmm2 align --num-threads {threads} \
+        (pbmm2 align --num-threads {threads} \
             --preset {params.preset} \
             --rg "@RG\\tID:{wildcards.sample}\\tSM:{wildcards.sample}" \
             --log-level {params.loglevel} \
             {extra} \
             {input.reference} \
             {input.query} \
-            {output.bam}) \
-        1> {log.out} \
-        2> {log.err}
+            {output.bam}) > {log} 2>&1
         """

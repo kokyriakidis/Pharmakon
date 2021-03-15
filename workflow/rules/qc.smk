@@ -15,9 +15,9 @@ rule fastqc__reads_quality_control:
         html = f"{OUTDIR}/{{sample}}/qc/fastqc/{{sample}}_fastqc.html",
         zip  = f"{OUTDIR}/{{sample}}/qc/fastqc/{{sample}}_fastqc.zip"
     log:
-        f"{OUTDIR}/{{sample}}/logs/fastqc/{{sample}}.fastqc.log"
+        f"{OUTDIR}/{{sample}}/qc/fastqc/logs/{{sample}}.fastqc.log"
     benchmark:
-        f"{OUTDIR}/{{sample}}/logs/fastqc/{{sample}}.fastqc.benchmark"
+        f"{OUTDIR}/{{sample}}/qc/fastqc/logs/{{sample}}.fastqc.benchmark"
     threads:
         lambda cores: cpu_count() - 2
     wrapper:
@@ -31,16 +31,16 @@ rule samtools__bam_stats:
     :output stats: Statistics from BAM files outputted in a text format
     """
     input:
-        bam = f"{OUTDIR}/{{sample}}/{mapper}/{{sample}}.{provider}.sorted.bam",
-        bai = f"{OUTDIR}/{{sample}}/{mapper}/{{sample}}.{provider}.sorted.bam.bai"
+        bam = f"{OUTDIR}/{{sample}}/{MAPPER}/{{sample}}.{BUILD}.{PROVIDER}.sorted.bam",
+        bai = f"{OUTDIR}/{{sample}}/{MAPPER}/{{sample}}.{BUILD}.{PROVIDER}.sorted.bam.bai"
     output:
-        stats     = f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{mapper}.{provider}.bam.stats.txt",
-        idxstats  = f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{mapper}.{provider}.bam.idxstats.txt",
-        flagstats = f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{mapper}.{provider}.bam.flagstats.txt"
+        stats     = f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{BUILD}.{PROVIDER}.{MAPPER}.bam.stats.txt",
+        idxstats  = f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{BUILD}.{PROVIDER}.{MAPPER}.bam.idxstats.txt",
+        flagstats = f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{BUILD}.{PROVIDER}.{MAPPER}.bam.flagstats.txt"
     log:
-        f"{OUTDIR}/{{sample}}/logs/samtools/{{sample}}.{mapper}.{provider}.bam.stats.log"
+        f"{OUTDIR}/{{sample}}/qc/samtools/logs/{{sample}}.{BUILD}.{PROVIDER}.{MAPPER}.bam.stats.log"
     benchmark:
-        f"{OUTDIR}/{{sample}}/logs/samtools/{{sample}}.{mapper}.{provider}.bam.stats.benchmark"
+        f"{OUTDIR}/{{sample}}/qc/samtools/logs/{{sample}}.{BUILD}.{PROVIDER}.{MAPPER}.bam.stats.benchmark"
     conda:
         "../envs/samtools.yaml"
     shell:
@@ -48,34 +48,6 @@ rule samtools__bam_stats:
         samtools idxstats {input.bam} > {output.idxstats}
         samtools stats {input.bam} > {output.stats}
         samtools flagstat {input.bam} > {output.flagstats}
-        """
-
-rule bcftools_stats:
-    """
-    Calculating VCF statistics using bcftools
-    :input bams: Read alignment files in a binary format
-    :output stats: Statistics from VCF files outputted in a text format
-    """
-    input: 
-        vcf = f"{OUTDIR}/{{sample}}/{{caller}}/{{sample}}.{provider}.{caller}.vcf.gz"
-    output: 
-        stats = f"{OUTDIR}/{{sample}}/qc/bcftools/{{sample}}.{provider}.{caller}.vcf.stats.txt"
-    log: 
-        f"{OUTDIR}/{{sample}}/logs/bcftools/{{sample}}.{provider}.{caller}.vcf.stats.log"
-    benchmark: 
-        f"{OUTDIR}/{{sample}}/logs/bcftools/{{sample}}.{provider}.{caller}.vcf.stats.benchmark"
-    params: 
-        fasta   = f"--fasta-ref {config['fasta']}", 
-        filters = "--apply-filters PASS", 
-        sample  = f"-s {{sample}}"
-    threads:
-        lambda cores: cpu_count() - 2
-    conda: 
-        "../envs/bcftools.yaml"
-    message: "Executing {rule}: Calculating VCF statistics for {input}."
-    shell: 
-        """
-        (bcftools stats --threads {threads} {params.fasta} {params.filters} {params.sample} {input.vcf} > {output.stats}) > {log} 2>&1
         """
 
 ## PACBIO QC ##
@@ -89,9 +61,9 @@ rule smrtcell__fastq_stats:
     output: 
         f"{OUTDIR}/{{sample}}/qc/smrtcell_stats/{{sample}}.read_length_and_quality.tsv"
     log: 
-        f"{OUTDIR}/{{sample}}/logs/smrtcell_stats/{{sample}}.read_length_and_quality.log"
+        f"{OUTDIR}/{{sample}}/qc/smrtcell_stats/logs/{{sample}}.read_length_and_quality.log"
     benchmark: 
-        f"{OUTDIR}/{{sample}}/logs/smrtcell_stats/{{sample}}.read_length_and_quality.benchmark"
+        f"{OUTDIR}/{{sample}}/qc/smrtcell_stats/logs/{{sample}}.read_length_and_quality.benchmark"
     conda: 
         "../envs/smrtcell_stats.yaml"
     shell: 
@@ -110,9 +82,9 @@ rule smrtcell_summary_stats:
         rlsummary = f"{OUTDIR}/{{sample}}/qc/smrtcell_stats/{{sample}}.read_length_summary.tsv",
         rqsummary = f"{OUTDIR}/{{sample}}/qc/smrtcell_stats/{{sample}}.read_quality_summary.tsv"
     log: 
-        f"{OUTDIR}/{{sample}}/logs/smrtcell_stats/{{sample}}.summary.log"
+        f"{OUTDIR}/{{sample}}/qc/smrtcell_stats/logs/{{sample}}.summary.log"
     benchmark: 
-        f"{OUTDIR}/{{sample}}/logs/smrtcell_stats/{{sample}}.summary.tsv"
+        f"{OUTDIR}/{{sample}}/qc/smrtcell_stats/logs/{{sample}}.summary.tsv"
     conda: 
         "../envs/smrtcell_stats.yaml"
     shell:
@@ -132,20 +104,20 @@ rule mosdepth__calculate_coverage:
     Calculating coverage using mosdepth
     """
     input:
-        bam = f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.pacbio.sorted.bam",
-        bai = f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.pacbio.sorted.bam.bai"
+        bam = f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.{BUILD}.pacbio.sorted.bam",
+        bai = f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.{BUILD}.pacbio.sorted.bam.bai"
     output:
-        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.mosdepth.global.dist.txt",
-        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.mosdepth.region.dist.txt",
-        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.mosdepth.summary.txt",
-        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.regions.bed.gz"
+        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.mosdepth.global.dist.txt",
+        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.mosdepth.region.dist.txt",
+        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.mosdepth.summary.txt",
+        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.regions.bed.gz"
     log: 
-        f"{OUTDIR}/{{sample}}/logs/mosdepth/{{sample}}.{config['build']}.mosdepth.log"
+        f"{OUTDIR}/{{sample}}/qc/mosdepth/logs/{{sample}}.{BUILD}.mosdepth.log"
     benchmark: 
-        f"{OUTDIR}/{{sample}}/logs/mosdepth/{{sample}}.{config['build']}.mosdepth.benchmark"
+        f"{OUTDIR}/{{sample}}/qc/mosdepth/logs/{{sample}}.{BUILD}.mosdepth.benchmark"
     params:
         by     = "500",
-        prefix = f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}",
+        prefix = f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}",
         extra  = "--no-per-base --use-median"
     threads: 4
     conda: 
@@ -162,13 +134,13 @@ rule sex__infer_sex_from_coverage:
     Inference of chromosomal sex from mosdepth coverage summary
     """
     input: 
-        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.mosdepth.summary.txt"
+        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.mosdepth.summary.txt"
     output: 
-        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.mosdepth.inferred_sex.txt"
+        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.mosdepth.inferred_sex.txt"
     log: 
-        f"{OUTDIR}/{{sample}}/logs/quality_control/{{sample}}.{config['build']}.infer_sex_from_coverage.log"
+        f"{OUTDIR}/{{sample}}/qc/mosdepth/logs/{{sample}}.{BUILD}.infer_sex_from_coverage.log"
     benchmark: 
-        f"{OUTDIR}/{{sample}}/logs/quality_control/{{sample}}.{config['build']}.infer_sex_from_coverage.benchmark"
+        f"{OUTDIR}/{{sample}}/qc/mosdepth/logs/{{sample}}.{BUILD}.infer_sex_from_coverage.benchmark"
     conda: 
         "../envs/pandas.yaml"
     shell: 
@@ -182,13 +154,13 @@ rule consistency__calculate_m2_ratio:
     Calculation of chrM:chr2 ratio from mosdepth coverage summary
     """
     input: 
-        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.mosdepth.summary.txt"
+        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.mosdepth.summary.txt"
     output: 
-        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.mosdepth.M2_ratio.txt"
+        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.mosdepth.M2_ratio.txt"
     log: 
-        f"{OUTDIR}/{{sample}}/logs/quality_control/{{sample}}.{config['build']}.calculate_M2_ratio.log"
+        f"{OUTDIR}/{{sample}}/qc/mosdepth/logs/{{sample}}.{BUILD}.calculate_M2_ratio.log"
     benchmark: 
-        f"{OUTDIR}/{{sample}}/logs/quality_control/{{sample}}.{config['build']}.calculate_M2_ratio.benchmark"
+        f"{OUTDIR}/{{sample}}/qc/mosdepth/logs/{{sample}}.{BUILD}.calculate_M2_ratio.benchmark"
     conda: 
         "../envs/pandas.yaml"
     shell: 
@@ -202,14 +174,14 @@ rule coverage__calculate_gc_coverage:
     Calculation of GC coverage distribution from mosdepth coverage by region
     """
     input:
-        mosdepth_regions = f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.regions.bed.gz",
+        mosdepth_regions = f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.regions.bed.gz",
         ref              = config["fasta"]
     output: 
-        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.gc_coverage.summary.txt"
+        f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.gc_coverage.summary.txt"
     log: 
-        f"{OUTDIR}/{{sample}}/logs/quality_control/{{sample}}.{config['build']}.calculate_gc_coverage.log"
+        f"{OUTDIR}/{{sample}}/qc/mosdepth/logs/{{sample}}.{BUILD}.calculate_gc_coverage.log"
     benchmark: 
-        f"{OUTDIR}/{{sample}}/logs/quality_control/{{sample}}.{config['build']}.calculate_gc_coverage.benchmark"
+        f"{OUTDIR}/{{sample}}/qc/mosdepth/logs/{{sample}}.{BUILD}.calculate_gc_coverage.benchmark"
     conda: 
         "../envs/gc_coverage.yaml"
     shell:
@@ -232,26 +204,22 @@ rule nanoplot__bam_statistics:
     Creates a html report based on the previously created plots.
     """
     input:
-        bam = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.nanopore.sorted.bam",
-        bai = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.nanopore.sorted.bam.bai"
+        bam = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{BUILD}.nanopore.sorted.bam",
+        bai = f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{BUILD}.nanopore.sorted.bam.bai"
     output:
-        f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.bam.NanoStats.txt",
-        f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.bam.NanoPlot-report.html"
+        f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.{BUILD}.bam.NanoStats.txt",
+        f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.{BUILD}.bam.NanoPlot-report.html"
     params:
         output_dir    = f"{OUTDIR}/{{sample}}/qc/nanoplot",
-        output_prefix = f"{{sample}}.bam.",
-        log_outdir    = f"{OUTDIR}/{{sample}}/logs/nanoplot/"
-    log:
-        err = f"{OUTDIR}/{{sample}}/logs/nanoplot/{{sample}}.bam.nanoplot.err",
-        out = f"{OUTDIR}/{{sample}}/logs/nanoplot/{{sample}}.bam.nanoplot.log"
+        output_prefix = f"{{sample}}.{BUILD}.bam."
     benchmark:
-        f"{OUTDIR}/{{sample}}/logs/nanoplot/{{sample}}.bam.nanoplot.benchmark"
+        f"{OUTDIR}/{{sample}}/qc/nanoplot/logs/{{sample}}.{BUILD}.bam.nanoplot.benchmark"
     threads:
         lambda cores: cpu_count() - 2
     conda: 
         "../envs/nanoplot.yaml"
     shell:
         """
-        NanoPlot --bam {input.bam} --outdir {params.output_dir} --prefix {params.output_prefix} --threads {threads} 2> {log.err}
-        mv {params.output_dir}/*.log {params.log_outdir}
+        NanoPlot --bam {input.bam} --outdir {params.output_dir} --prefix {params.output_prefix} --threads {threads}
+        mv {params.output_dir}/*.log {params.output_dir}/logs/
         """

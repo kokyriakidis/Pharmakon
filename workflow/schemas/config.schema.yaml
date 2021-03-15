@@ -1,94 +1,39 @@
-$schema: "http://json-schema.org/draft-04/schema#"
+$schema: "http://json-schema.org/draft-06/schema#"
 
-description: snakemake configuration file
+description: Snakemake configuration file
 
 type: object
 
 properties:
+  outdir:
+    type: string
+    description: Output directory path folder
+  build:
+    type: string
+    enum: ["hg38", "hg19"]
+    description: Build of the reference genome [hg38|hg19]
+  fasta:
+    type: string
+    description: Path to reference file
+  fai:
+    type: string
+    description: Path to reference index file
+  datatype:
+    type: string
+    enum: ["ILLUMINA", "PACBIO", "NANOPORE"]
+    description: Type of the sequencing data
+  stargazer_path:
+    type: string
+    description: Path to Stargazer folder
   samples:
-    type: string
-  units:
-    type: string
-
-  ref:
     type: object
-    properties:
-      species:
-        type: string
-      build:
-        type: string
-      release:
-        type: integer
-    required:
-      - species
-      - build
-      - release
-
-  filtering:
-    type: object
-    properties:
-      vqsr:
-        type: boolean
-      hard:
-        type: object
-        properties:
-          snvs:
-            type: string
-          indels:
-            type: string
-        required:
-          - snvs
-          - indels
-    required:
-      - vqsr
-      - hard
-
-  processing:
-    type: object
-    properties:
-      remove-duplicates:
-        type: boolean
-      restrict-regions:
-        type: string
-      region-padding:
-        type: integer
-    required:
-      - remove-duplicates
-
-  params:
-    type: object
-    properties:
-      gatk:
-        type: object
-        properties:
-          HaplotypeCaller:
-            type: string
-          BaseRecalibrator:
-            type: string
-          GenotypeGVCFs:
-            type: string
-          VariantRecalibrator:
-            type: string
-        required:
-          - HaplotypeCaller
-          - BaseRecalibrator
-          - GenotypeGVCFs
-          - VariantRecalibrator
-      picard:
-        type: object
-        properties:
-          MarkDuplicates:
-            type: string
-        required:
-          - MarkDuplicates
-    required:
-      - gatk
-      - picard
-
+    items: {type: array}
+    description: Name of the sample and a list containing it's sequencing reads
 required:
+  - outdir
+  - build
+  - fasta
+  - fai
+  - datatype
+  - stargazer_path
   - samples
-  - units
-  - ref
-  - filtering
-  - processing
-  - params

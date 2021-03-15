@@ -10,6 +10,8 @@ build: hg38
 # Set reference file paths.
 fasta: /home/kokyriakidis/Desktop/PGxSnake_Output/reference/GRCh38_no_alt_analysis_set.fasta
 fai: /home/kokyriakidis/Desktop/PGxSnake_Output/reference/GRCh38_no_alt_analysis_set.fasta.fai
+#fasta: /home/kokyriakidis/Desktop/PGxSnake_Output/reference/GRCh38_no_alt.chr20.fa
+#fai: /home/kokyriakidis/Desktop/PGxSnake_Output/reference/GRCh38_no_alt.chr20.fa.fai
 
 # Step 4 
 # Define the datatype of the sequencing data. Select one of ILLUMINA, NANOPORE or PACBIO

@@ -5,3 +5,5 @@ data/*
 reference/*
 logs/*
 workflow/scripts/recommendations/__pycache__
+.keras
+.paraller/tmp

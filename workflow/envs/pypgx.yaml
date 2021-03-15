@@ -1,6 +1,7 @@
 channels:
-  - sbslee
   - conda-forge
   - bioconda
+  - defaults
+  - sbslee
 dependencies:
-  - pypgx ==0.2.0
+  - pypgx ==0.3.0
