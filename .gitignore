@@ -6,4 +6,7 @@ reference/*
 logs/*
 workflow/scripts/recommendations/__pycache__
 .keras
-.paraller/tmp
+.paraller/tmp*
+.pki/nssdb*
+.conda*
+.cache*
