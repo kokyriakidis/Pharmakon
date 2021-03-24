@@ -1,6 +1,6 @@
 # Step 1 
 # Define the output directory path folder
-outdir: /home/kokyriakidis/Desktop/PGxSnake_Output
+outdir: /media/kokyriakidis/PRODUCTION/PGxSnake_Output
 
 # Step 2 
 # Define reference build. Select one of hg38 or hg19
@@ -8,10 +8,10 @@ build: hg38
 
 # Step 3 
 # Set reference file paths.
-fasta: /home/kokyriakidis/Desktop/PGxSnake_Output/reference/GRCh38_no_alt_analysis_set.fasta
-fai: /home/kokyriakidis/Desktop/PGxSnake_Output/reference/GRCh38_no_alt_analysis_set.fasta.fai
-#fasta: /home/kokyriakidis/Desktop/PGxSnake_Output/reference/GRCh38_no_alt.chr20.fa
-#fai: /home/kokyriakidis/Desktop/PGxSnake_Output/reference/GRCh38_no_alt.chr20.fa.fai
+fasta: /media/kokyriakidis/PRODUCTION/PGxSnake_Output/reference/GRCh38_no_alt_analysis_set.fasta
+fai: /media/kokyriakidis/PRODUCTION/PGxSnake_Output/reference/GRCh38_no_alt_analysis_set.fasta.fai
+#fasta: /media/kokyriakidis/PRODUCTION/PGxSnake_Output/reference/GRCh38_no_alt.chr20.fa
+#fai: /media/kokyriakidis/PRODUCTION/PGxSnake_Output/reference/GRCh38_no_alt.chr20.fa.fai
 
 # Step 4 
 # Define the datatype of the sequencing data. Select one of ILLUMINA, NANOPORE or PACBIO
@@ -35,7 +35,7 @@ stargazer_path: /home/kokyriakidis/Downloads/Stargazer_v1.0.8/Stargazer_v1.0.8
 #   SAMPLENAME2: [/path/to/sample2/fastq]
 
 samples:
-  HG003: [HG003_35x_PacBio_14kb-15kb.fastq.gz]
+  HG003: [/media/kokyriakidis/PRODUCTION/PGxSnake_Output/reference/HG003.pacbio.wgs.fastq.gz]
 
 
 

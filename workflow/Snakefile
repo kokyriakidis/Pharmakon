@@ -26,6 +26,11 @@ if BUILD == "hg19":
                     "slco1b1", "slco1b3", "slco2b1", "sult1a1", "tbxas1", 
                     "tpmt",    "ugt1a1",  "ugt1a4",  "ugt2b7",  "ugt2b15", 
                     "ugt2b17"]
+    
+    CPIC_TARGET_GENES = ["cacna1s", "cftr", "cyp2b6", "cyp2c8",  "cyp2c9",
+                        "cyp2c19", "cyp2d6", "cyp3a5", "vkorc1", "cyp4f2",
+                        "dpyd",    "g6pd", "ifnl3", "nudt15", "ryr1",
+                        "slco1b1",  "tpmt", "ugt1a1"]
 
 elif BUILD == "hg38":
 
@@ -36,9 +41,14 @@ elif BUILD == "hg38":
                     "cyp3a7",  "cyp3a43", "vkorc1", "cyp4b1",  "cyp4f2",
                     "cyp19a1", "cyp26a1", "dpyd",    "gstm1",   "gstp1",
                     "ifnl3",   "nat1",    "nat2",    "nudt15",  "por",
-                    "ryr1",    "slc15a2", "slc22a2", "slco1b1", "slco1b3"
-                    "slco2b1", "sult1a1", "tbxas1",  "tpmt",    "ugt1a1"
+                    "ryr1",    "slc15a2", "slc22a2", "slco1b1", "slco1b3",
+                    "slco2b1", "sult1a1", "tbxas1",  "tpmt",    "ugt1a1",
                     "ugt1a4",  "ugt2b7",  "ugt2b15", "ugt2b17"]
+
+    CPIC_TARGET_GENES = ["cacna1s", "cftr", "cyp2b6", "cyp2c8",  "cyp2c9",
+                        "cyp2c19", "cyp2d6", "cyp3a5", "vkorc1", "cyp4f2",
+                        "dpyd",    "g6pd", "ifnl3", "nudt15", "ryr1",
+                        "slco1b1",  "tpmt", "ugt1a1"]
                     
 
 CONTROL_GENE = 'vdr'
@@ -61,7 +71,32 @@ if config["datatype"] == "NANOPORE":
     
     rule all:
         input:
-            expand(f"{OUTDIR}/{{sample}}/stargazer/genotype/{{target_gene}}/{{sample}}.{{target_gene}}.genotype.txt", sample=config["samples"], target_gene=TARGET_GENES)
+            expand(f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{BUILD}.nanopore.sorted.bam", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{BUILD}.nanopore.sorted.bam.bai", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.nanopore.pepper.margin.phased.haplotagged.bam", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.nanopore.pepper.margin.phased.haplotagged.bam.bai", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.nanopore.pepper.margin.deepvariant.vcf.gz", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.nanopore.pepper.margin.deepvariant.vcf.gz.tbi", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.nanopore.pepper.margin.deepvariant.g.vcf.gz", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.nanopore.pepper.margin.deepvariant.g.vcf.gz.tbi", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.nanopore.pepper.margin.deepvariant.visual_report.html", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.nanopore.pepper.margin.deepvariant.phased.vcf.gz", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.nanopore.pepper.margin.deepvariant.phased.vcf.gz.tbi", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.nanopore.pepper.margin.deepvariant.phaseset.bed", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.{BUILD}.nanopore.bam.NanoStats.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.{BUILD}.nanopore.bam.NanoPlot-report.html", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{BUILD}.nanopore.minimap2.bam.stats.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{BUILD}.nanopore.minimap2.bam.idxstats.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{BUILD}.nanopore.minimap2.bam.flagstats.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.nanopore.mosdepth.global.dist.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.nanopore.mosdepth.region.dist.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.nanopore.mosdepth.summary.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.nanopore.regions.bed.gz", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.nanopore.mosdepth.inferred_sex.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.nanopore.mosdepth.M2_ratio.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/stargazer/gdf/{{target_gene}}/{{sample}}.{{target_gene}}.gdf", sample=config["samples"], target_gene=TARGET_GENES),
+            expand(f"{OUTDIR}/{{sample}}/stargazer/genotypes/{{target_gene}}/{{sample}}.{{target_gene}}.stargazer-genotype.txt", sample=config["samples"], target_gene=TARGET_GENES),
+            expand(f"{OUTDIR}/{{sample}}/stargazer/genotypes/{{target_gene}}/{{sample}}.{{target_gene}}.stargazer-genotype.project", sample=config["samples"], target_gene=TARGET_GENES)
 
 if config["datatype"] == "PACBIO":
     
@@ -72,11 +107,33 @@ if config["datatype"] == "PACBIO":
 
     rule all:
         input:
-            #expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.pacbio.pepper.margin.deepvariant.phased.vcf.gz", sample=config["samples"])
-            #expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.mosdepth.inferred_sex.txt", sample=config["samples"]),
-            #expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.mosdepth.M2_ratio.txt", sample=config["samples"]),
-            #expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{config['build']}.gc_coverage.summary.txt", sample=config["samples"]),
-            expand(f"{OUTDIR}/{{sample}}/stargazer/genotype/{{target_gene}}/{{sample}}.{{target_gene}}.genotype.txt", sample=config["samples"], target_gene=TARGET_GENES)
+            expand(f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.{BUILD}.pacbio.sorted.bam", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.{BUILD}.pacbio.sorted.bam.bai", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.pacbio.pepper.margin.phased.haplotagged.bam", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.pacbio.pepper.margin.phased.haplotagged.bam.bai", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.pacbio.pepper.margin.deepvariant.vcf.gz", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.pacbio.pepper.margin.deepvariant.vcf.gz.tbi", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.pacbio.pepper.margin.deepvariant.g.vcf.gz", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.pacbio.pepper.margin.deepvariant.g.vcf.gz.tbi", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.pacbio.pepper.margin.deepvariant.visual_report.html", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.pacbio.pepper.margin.deepvariant.phased.vcf.gz", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.pacbio.pepper.margin.deepvariant.phased.vcf.gz.tbi", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/pepper/{{sample}}.{BUILD}.pacbio.pepper.margin.deepvariant.phaseset.bed", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.{BUILD}.pacbio.bam.NanoStats.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/nanoplot/{{sample}}.{BUILD}.pacbio.bam.NanoPlot-report.html", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{BUILD}.pacbio.pbmm2.bam.stats.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{BUILD}.pacbio.pbmm2.bam.idxstats.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{BUILD}.pacbio.pbmm2.bam.flagstats.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.pacbio.mosdepth.global.dist.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.pacbio.mosdepth.region.dist.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.pacbio.mosdepth.summary.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.pacbio.regions.bed.gz", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.pacbio.mosdepth.inferred_sex.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.pacbio.mosdepth.M2_ratio.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/stargazer/gdf/{{target_gene}}/{{sample}}.{{target_gene}}.gdf", sample=config["samples"], target_gene=TARGET_GENES),
+            expand(f"{OUTDIR}/{{sample}}/stargazer/genotypes/{{target_gene}}/{{sample}}.{{target_gene}}.stargazer-genotype.txt", sample=config["samples"], target_gene=TARGET_GENES),
+            expand(f"{OUTDIR}/{{sample}}/stargazer/genotypes/{{target_gene}}/{{sample}}.{{target_gene}}.stargazer-genotype.project", sample=config["samples"], target_gene=TARGET_GENES)
+
 
 if config["datatype"] == "ILLUMINA":
     
@@ -87,8 +144,30 @@ if config["datatype"] == "ILLUMINA":
     
     rule all:
         input:
-            expand(f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.hg38.illumina.deepvariant.vcf.gz", sample=config["samples"])
-
+            expand(f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{BUILD}.illumina.sorted.bam", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/minimap2/{{sample}}.{BUILD}.illumina.sorted.bam.bai", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.{BUILD}.illumina.deepvariant.vcf.gz", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.{BUILD}.illumina.deepvariant.vcf.gz.tbi", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.{BUILD}.illumina.deepvariant.g.vcf.gz", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.{BUILD}.illumina.deepvariant.g.vcf.gz.tbi", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.{BUILD}.illumina.deepvariant.visual_report.html", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.{BUILD}.illumina.deepvariant.phased.vcf.gz", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.{BUILD}.illumina.deepvariant.phased.vcf.gz.tbi", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/deepvariant/{{sample}}.{BUILD}.illumina.deepvariant.phaseset.bed", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/fastqc/{{sample}}_fastqc.html", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/fastqc/{{sample}}_fastqc.zip", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{BUILD}.illumina.minimap2.bam.stats.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{BUILD}.illumina.minimap2.bam.idxstats.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/samtools/{{sample}}.{BUILD}.illumina.minimap2.bam.flagstats.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.illumina.mosdepth.global.dist.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.illumina.mosdepth.region.dist.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.illumina.mosdepth.summary.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.illumina.regions.bed.gz", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.illumina.mosdepth.inferred_sex.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/qc/mosdepth/{{sample}}.{BUILD}.illumina.mosdepth.M2_ratio.txt", sample=config["samples"]),
+            expand(f"{OUTDIR}/{{sample}}/stargazer/gdf/{{target_gene}}/{{sample}}.{{target_gene}}.gdf", sample=config["samples"], target_gene=TARGET_GENES),
+            expand(f"{OUTDIR}/{{sample}}/stargazer/genotypes/{{target_gene}}/{{sample}}.{{target_gene}}.stargazer-genotype.txt", sample=config["samples"], target_gene=TARGET_GENES),
+            expand(f"{OUTDIR}/{{sample}}/stargazer/genotypes/{{target_gene}}/{{sample}}.{{target_gene}}.stargazer-genotype.project", sample=config["samples"], target_gene=TARGET_GENES)
 
 
 include: "rules/mapping.smk"

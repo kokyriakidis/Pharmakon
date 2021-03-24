@@ -45,30 +45,31 @@ rule stargazer__call_star_alleles:
         vcf = f"{OUTDIR}/{{sample}}/{CALLER}/{{sample}}.{BUILD}.{PROVIDER}.{VARIANTCALL}.vcf.gz",
         gdf = f"{OUTDIR}/{{sample}}/stargazer/gdf/{{target_gene}}/{{sample}}.{{target_gene}}.gdf"
     output:
-        genotype = f"{OUTDIR}/{{sample}}/stargazer/genotype/{{target_gene}}/{{sample}}.{{target_gene}}.genotype.txt"
+        genotype    = f"{OUTDIR}/{{sample}}/stargazer/genotypes/{{target_gene}}/{{sample}}.{{target_gene}}.stargazer-genotype.txt",
+        project_dir = directory(f"{OUTDIR}/{{sample}}/stargazer/genotypes/{{target_gene}}/{{sample}}.{{target_gene}}.stargazer-genotype.project")
     params:
-        output_dir     = f"{OUTDIR}/{{sample}}/stargazer/genotype/{{target_gene}}",
-        output_prefix  = f"{{sample}}.{{target_gene}}.genotype",
+        output_dir     = f"{OUTDIR}/{{sample}}/stargazer/genotypes/{{target_gene}}",
+        output_prefix  = f"{{sample}}.{{target_gene}}",
         stargazer_path = config["stargazer_path"],
         target_gene    = f"{{target_gene}}",
         control_gene   = f"{CONTROL_GENE}",
         datatype       = "wgs"
-    log: 
-        f"{OUTDIR}/{{sample}}/stargazer/genotype/{{target_gene}}/logs/{{sample}}.{{target_gene}}.genotype.log"
     benchmark: 
-        f"{OUTDIR}/{{sample}}/stargazer/genotype/{{target_gene}}/logs/{{sample}}.{{target_gene}}.genotype.benchmark"
+        f"{OUTDIR}/{{sample}}/stargazer/genotypes/{{target_gene}}/logs/{{sample}}.{{target_gene}}.genotype.benchmark"
     conda:
         "../envs/stargazer.yaml"
     shell: 
         """
-        (python {params.stargazer_path}/stargazer.py genotype \
+        python {params.stargazer_path}/stargazer.py genotype \
         --output_dir {params.output_dir} \
         --output_prefix {params.output_prefix} \
         -d {params.datatype} \
         -t {params.target_gene} \
         --vcf {input.vcf} \
         -c {params.control_gene} \
-        --gdf {input.gdf}) > {log} 2>&1
+        --gdf {input.gdf}
+
+        mv {params.output_dir}/{params.output_prefix}.stargazer-genotype.log {params.output_dir}/logs
         """
 
 

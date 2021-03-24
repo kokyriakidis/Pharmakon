@@ -100,12 +100,12 @@ rule pbmm2__map_pacbio_reads:
         reference = config["fasta"],
         query     = get_samples_data
     output:
-        bam=f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.{BUILD}.pacbio.sorted.bam",
-        index=f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.{BUILD}.pacbio.sorted.bai"
+        bam   = f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.{BUILD}.pacbio.sorted.bam",
+        index = f"{OUTDIR}/{{sample}}/pbmm2/{{sample}}.{BUILD}.pacbio.sorted.bam.bai"
     params:
-        preset="CCS",
-        extra="--sort --unmapped -c 0 -y 70",
-        loglevel="INFO"
+        preset   = "CCS",
+        extra    = "--sort --unmapped -c 0 -y 70",
+        loglevel = "INFO"
     log:
         f"{OUTDIR}/{{sample}}/pbmm2/logs/{{sample}}.{BUILD}.pacbio.sorted.bam.log"
     benchmark:
@@ -119,7 +119,7 @@ rule pbmm2__map_pacbio_reads:
             --preset {params.preset} \
             --rg "@RG\\tID:{wildcards.sample}\\tSM:{wildcards.sample}" \
             --log-level {params.loglevel} \
-            {extra} \
+            {params.extra} \
             {input.reference} \
             {input.query} \
             {output.bam}) > {log} 2>&1
